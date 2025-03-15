@@ -8,12 +8,24 @@ importers:
 
   .:
     dependencies:
+      '@huggingface/inference':
+        specifier: ^3.5.2
+        version: 3.5.2
       '@langchain/core':
         specifier: ^0.3.42
         version: 0.3.42(openai@4.87.3(zod@3.24.2))
+      '@langchain/openai':
+        specifier: ^0.4.4
+        version: 0.4.4(@langchain/core@0.3.42(openai@4.87.3(zod@3.24.2)))
+      '@types/dotenv':
+        specifier: ^8.2.3
+        version: 8.2.3
       '@types/readline-sync':
         specifier: ^1.4.8
         version: 1.4.8
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
       langchain:
         specifier: ^0.3.19
         version: 0.3.19(@langchain/core@0.3.42(openai@4.87.3(zod@3.24.2)))(axios@1.8.3)(cheerio@1.0.0)(openai@4.87.3(zod@3.24.2))
@@ -39,6 +51,13 @@ packages:
   '@cfworker/json-schema@4.1.1':
     resolution: {integrity: sha512-gAmrUZSGtKc3AiBL71iNWxDsyUC5uMaKKGdvzYsBoTW/xi42JQHl7eKV2OYzCUqvc+D2RCcf7EXY2iCyFIk6og==}
 
+  '@huggingface/inference@3.5.2':
+    resolution: {integrity: sha512-MIB1iZTtTBclIFmRL2fbkoxZTuMjziezx87nUzzsPwCX96c+ciilWV+QQZOjOmBlx1ZrfSuJbhwZ1pylSENZnQ==}
+    engines: {node: '>=18'}
+
+  '@huggingface/tasks@0.17.4':
+    resolution: {integrity: sha512-LES7+OosthFKdqRL0e+bA2d4jfKmiQWuqahsPrv0+EsSZtdHdaZ3nje0f2g5wq4miHX4xWpBLuWJknjdnBwXsA==}
+
   '@langchain/core@0.3.42':
     resolution: {integrity: sha512-pT/jC5lqWK3YGDq8dQwgKoa6anqAhMtG1x5JbnrOj9NdaLeBbCKBDQ+/Ykzk3nZ8o+0UMsaXNZo7IVL83VVjHg==}
     engines: {node: '>=18'}
@@ -54,6 +73,10 @@ packages:
     engines: {node: '>=18'}
     peerDependencies:
       '@langchain/core': '>=0.2.21 <0.4.0'
+
+  '@types/dotenv@8.2.3':
+    resolution: {integrity: sha512-g2FXjlDX/cYuc5CiQvyU/6kkbP1JtmGzh0obW50zD7OKeILVL0NSpPWLXVfqoAGQjom2/SLLx9zHq0KXvD6mbw==}
+    deprecated: This is a stub types definition. dotenv provides its own type definitions, so you do not need this installed.
 
   '@types/node-fetch@2.6.12':
     resolution: {integrity: sha512-8nneRWKCg3rMtF69nLQJnOYUcbafYeFSjqkw3jCRLsqkWFlHaoQrr5mXmofFGOx3DKn7UfmBMyov8ySvLRVldA==}
@@ -164,6 +187,10 @@ packages:
 
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
+
+  dotenv@16.4.7:
+    resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
+    engines: {node: '>=12'}
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -502,6 +529,12 @@ snapshots:
 
   '@cfworker/json-schema@4.1.1': {}
 
+  '@huggingface/inference@3.5.2':
+    dependencies:
+      '@huggingface/tasks': 0.17.4
+
+  '@huggingface/tasks@0.17.4': {}
+
   '@langchain/core@0.3.42(openai@4.87.3(zod@3.24.2))':
     dependencies:
       '@cfworker/json-schema': 4.1.1
@@ -534,6 +567,10 @@ snapshots:
     dependencies:
       '@langchain/core': 0.3.42(openai@4.87.3(zod@3.24.2))
       js-tiktoken: 1.0.19
+
+  '@types/dotenv@8.2.3':
+    dependencies:
+      dotenv: 16.4.7
 
   '@types/node-fetch@2.6.12':
     dependencies:
@@ -664,6 +701,8 @@ snapshots:
       dom-serializer: 2.0.0
       domelementtype: 2.3.0
       domhandler: 5.0.3
+
+  dotenv@16.4.7: {}
 
   dunder-proto@1.0.1:
     dependencies:

@@ -1,7 +1,7 @@
 {
   "name": "shorts-poc",
   "version": "1.0.0",
-  "description": "",
+  "description": "YouTube Transcript Downloader & Image Generator",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -12,8 +12,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@huggingface/inference": "^3.5.2",
     "@langchain/core": "^0.3.42",
+    "@langchain/openai": "^0.4.4",
+    "@types/dotenv": "^8.2.3",
     "@types/readline-sync": "^1.4.8",
+    "dotenv": "^16.4.7",
     "langchain": "^0.3.19",
     "readline-sync": "^1.4.10",
     "youtube-transcript": "^1.2.1",
