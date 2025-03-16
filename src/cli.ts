@@ -39,6 +39,143 @@ export function validateAndExtractVideoId(url: string): string {
 }
 
 /**
+ * Prompt the user for manual clip timestamps
+ * @param numberOfClips Number of clips to extract
+ * @param clipDuration Default duration for each clip in seconds
+ * @returns Array of clip ranges with start and end times
+ */
+export function promptForManualTimestamps(
+  numberOfClips: number = 3,
+  clipDuration: number = 5
+): Array<{ start: number; end: number }> {
+  console.log("\n📋 Manual Clip Timestamp Entry");
+  console.log("-----------------------------");
+  console.log(`Please enter timestamps for ${numberOfClips} clips.`);
+  console.log("Format: MM:SS or HH:MM:SS (e.g., 1:30 for 1 minute and 30 seconds)");
+  
+  const clipRanges: Array<{ start: number; end: number }> = [];
+  
+  for (let i = 0; i < numberOfClips; i++) {
+    let startTimestamp = "";
+    let valid = false;
+    
+    // Keep asking until a valid timestamp is provided
+    while (!valid) {
+      startTimestamp = readlineSync.question(`\nStart time for clip ${i + 1}: `);
+      valid = isValidTimestamp(startTimestamp);
+      if (!valid) {
+        console.log("❌ Invalid timestamp format. Please use MM:SS or HH:MM:SS.");
+      }
+    }
+    
+    // Convert the timestamp to seconds
+    const startSeconds = timestampToSeconds(startTimestamp);
+    
+    // Ask for clip duration or end time
+    const useDuration = readlineSync.keyInYNStrict("Use default clip duration? (Otherwise you'll specify end time)");
+    
+    // Initialize endSeconds with a default value to satisfy TypeScript
+    let endSeconds = startSeconds + clipDuration;
+    
+    if (useDuration) {
+      // Use default duration
+      // endSeconds is already set above
+      console.log(`End time: ${formatTimestamp(endSeconds)} (${clipDuration} seconds duration)`);
+    } else {
+      // Ask for end timestamp
+      let endTimestamp = "";
+      valid = false;
+      
+      while (!valid) {
+        endTimestamp = readlineSync.question(`End time for clip ${i + 1}: `);
+        valid = isValidTimestamp(endTimestamp);
+        if (!valid) {
+          console.log("❌ Invalid timestamp format. Please use MM:SS or HH:MM:SS.");
+          continue;
+        }
+        
+        // Convert to seconds and validate
+        const tempEndSeconds = timestampToSeconds(endTimestamp);
+        if (tempEndSeconds <= startSeconds) {
+          console.log("❌ End time must be after start time.");
+          valid = false;
+        } else {
+          endSeconds = tempEndSeconds;
+        }
+      }
+    }
+    
+    clipRanges.push({
+      start: startSeconds,
+      end: endSeconds
+    });
+    
+    console.log(`✅ Clip ${i + 1} will be extracted from ${formatTimestamp(startSeconds)} to ${formatTimestamp(endSeconds)}`);
+  }
+  
+  return clipRanges;
+}
+
+/**
+ * Validate if a string is in proper timestamp format
+ * @param timestamp Timestamp string (MM:SS or HH:MM:SS)
+ * @returns Boolean indicating if the format is valid
+ */
+function isValidTimestamp(timestamp: string): boolean {
+  // Check for MM:SS format
+  if (/^\d{1,2}:\d{1,2}$/.test(timestamp)) {
+    const [minutes, seconds] = timestamp.split(':').map(Number);
+    return minutes >= 0 && seconds >= 0 && seconds < 60;
+  }
+  
+  // Check for HH:MM:SS format
+  if (/^\d{1,2}:\d{1,2}:\d{1,2}$/.test(timestamp)) {
+    const [hours, minutes, seconds] = timestamp.split(':').map(Number);
+    return hours >= 0 && minutes >= 0 && seconds >= 0 && minutes < 60 && seconds < 60;
+  }
+  
+  return false;
+}
+
+/**
+ * Convert a timestamp string to seconds
+ * @param timestamp Timestamp string (MM:SS or HH:MM:SS)
+ * @returns Number of seconds
+ */
+function timestampToSeconds(timestamp: string): number {
+  const parts = timestamp.split(':').map(Number);
+  
+  if (parts.length === 2) {
+    // MM:SS format
+    const [minutes, seconds] = parts;
+    return minutes * 60 + seconds;
+  } else if (parts.length === 3) {
+    // HH:MM:SS format
+    const [hours, minutes, seconds] = parts;
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+  
+  return 0;
+}
+
+/**
+ * Format seconds as a timestamp string (HH:MM:SS)
+ * @param seconds Number of seconds
+ * @returns Formatted timestamp
+ */
+function formatTimestamp(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  } else {
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  }
+}
+
+/**
  * Display error message to the user
  * @param message The error message to display
  * @param error Optional error object for detailed logging
@@ -66,6 +203,7 @@ export function displayApiKeyHelp(): void {
   console.log("  VIDEO_ENABLED=true (optional for video creation)");
   console.log("\nFor direct video extraction:");
   console.log("  EXTRACTION_ENABLED=true");
+  console.log("  MANUAL_TIMESTAMP_ENTRY=true (to manually specify clip timestamps)");
   console.log("  CLIP_DURATION=5 (duration in seconds for each clip)");
   console.log("  EXTRACTION_QUALITY=medium (low, medium, or high)");
   console.log("  REMOVE_AUDIO=true/false (remove audio from extracted clips)");
@@ -111,6 +249,9 @@ export function displayCompletion(
       console.log("\nClip processing options:");
       console.log(`- Audio: ${config.removeAudio ? 'Removed' : 'Preserved'}`);
       console.log(`- Subtitles: ${config.removeSubtitles ? 'Removed' : 'Preserved'}`);
+      if (config.useCustomSoundtrack) {
+        console.log(`- Custom soundtrack: Added (${config.soundtrackPath})`);
+      }
     }
   }
   
@@ -120,6 +261,9 @@ export function displayCompletion(
     if (!config.extractionEnabled) {
       console.log(`Duration: ${config.videoDuration} seconds`);
       console.log("Video format: MP4 (H.264) with zoom effects");
+      if (config.useCustomSoundtrack) {
+        console.log(`Custom soundtrack: ${config.soundtrackPath}`);
+      }
     } else {
       console.log(`Format: MP4 with clips from the original video`);
       if (config.removeAudio) {

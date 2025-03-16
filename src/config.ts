@@ -21,6 +21,7 @@ export interface Config {
   useCustomSoundtrack: boolean; // New: Option to add custom soundtrack
   soundtrackPath: string; // New: Path to the soundtrack file
   soundtrackVolume: number; // New: Volume level for the soundtrack (0.0-1.0)
+  manualTimestampEntry: boolean; // New: Option to manually enter timestamps
 }
 
 // Validate required environment variables
@@ -51,7 +52,8 @@ export const config: Config = {
   removeSubtitles: process.env.REMOVE_SUBTITLES === "true" || false, // Option to remove subtitles
   useCustomSoundtrack: process.env.USE_CUSTOM_SOUNDTRACK === "true" || false, // Option to use custom soundtrack
   soundtrackPath: process.env.SOUNDTRACK_PATH || path.join(process.cwd(), "audio", "slowlife.mp3"), // Default soundtrack
-  soundtrackVolume: parseFloat(process.env.SOUNDTRACK_VOLUME || "0.5") // Default volume: 50%
+  soundtrackVolume: parseFloat(process.env.SOUNDTRACK_VOLUME || "0.5"), // Default volume: 50%
+  manualTimestampEntry: process.env.MANUAL_TIMESTAMP_ENTRY === "true" || false // Option to manually enter timestamps
 };
 
 // Debug: Log environment variables (without showing actual values)
@@ -72,6 +74,7 @@ export const logConfigStatus = (): void => {
     console.log("  - Extraction quality:", config.extractionQuality);
     console.log("  - Remove audio:", config.removeAudio ? "Yes" : "No");
     console.log("  - Remove subtitles:", config.removeSubtitles ? "Yes" : "No");
+    console.log("  - Manual timestamp entry:", config.manualTimestampEntry ? "Yes" : "No");
   }
   
   if (config.useCustomSoundtrack) {

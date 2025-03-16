@@ -6,7 +6,8 @@ import {
   displayStatus,
   displayError,
   displayApiKeyHelp,
-  displayCompletion
+  displayCompletion,
+  promptForManualTimestamps
 } from "./cli";
 import { createOutputDirectories } from "./utils/file-utils";
 import { fetchTranscript, saveTranscript, getTranscriptSegments } from "./services/transcript-service";
@@ -93,13 +94,22 @@ async function main(): Promise<void> {
         imagePaths: screenshotPaths
       };
       
-      // Extract clip ranges
-      displayStatus("Determining key moments for video clips...");
-      const clipRanges = extractKeyClipRanges(
-        transcriptSegments, 
-        config.imagesToGenerate,
-        config.clipDuration
-      );
+      // Determine clip ranges - either automatic or manual
+      let clipRanges: Array<{ start: number; end: number }>;
+      
+      if (config.manualTimestampEntry) {
+        // Prompt user for manual timestamps
+        displayStatus("Manual timestamp entry enabled");
+        clipRanges = promptForManualTimestamps(config.imagesToGenerate, config.clipDuration);
+      } else {
+        // Use automatic extraction based on transcript analysis
+        displayStatus("Determining key moments for video clips...");
+        clipRanges = extractKeyClipRanges(
+          transcriptSegments, 
+          config.imagesToGenerate,
+          config.clipDuration
+        );
+      }
       
       // Extract video clips (audio/subtitle removal handled within extractVideoClips now)
       displayStatus("Extracting video clips...");

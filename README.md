@@ -15,6 +15,7 @@ This application processes YouTube videos in two different ways:
 - **Direct Extraction Approach**:
   - Extract screenshots at key moments from the original video
   - Extract short video clips from the most relevant parts
+  - **Manually specify timestamps** for clip extraction
   - Create a montage of the extracted clips
   - **Remove audio and/or subtitles** from extracted clips
   - **Add custom soundtrack** to montage videos
@@ -59,7 +60,7 @@ In this approach:
 ### 3. Direct Extraction Approach
 
 In this approach:
-- Key timestamps are determined from the transcript
+- Key timestamps are determined (either automatically from the transcript or manually specified)
 - Screenshots are captured at those timestamps using FFmpeg and yt-dlp
 - Short video clips are extracted at key moments
 - Audio and/or subtitles can be optionally removed from clips
@@ -116,6 +117,7 @@ In this approach:
    USE_CUSTOM_SOUNDTRACK=true
    SOUNDTRACK_PATH=audio/slowlife.mp3
    SOUNDTRACK_VOLUME=0.5
+   MANUAL_TIMESTAMP_ENTRY=true
    ```
 
 ## Usage
@@ -130,7 +132,8 @@ Follow the prompts to enter a YouTube video URL. The application will:
 
 1. Download the video transcript
 2. Process the content based on your chosen approach (AI-based or direct extraction)
-3. Save everything to an organized output directory
+3. If `MANUAL_TIMESTAMP_ENTRY` is enabled, prompt you to enter timestamps for clip extraction
+4. Save everything to an organized output directory
 
 ## Output Structure
 
@@ -188,6 +191,7 @@ You can configure the application by modifying the `.env` file or the `config.ts
 - `USE_CUSTOM_SOUNDTRACK`: Enable custom soundtrack (true/false)
 - `SOUNDTRACK_PATH`: Path to the soundtrack file (default: audio/slowlife.mp3)
 - `SOUNDTRACK_VOLUME`: Volume level for the soundtrack (0.0-1.0, default: 0.5)
+- `MANUAL_TIMESTAMP_ENTRY`: Enable manual timestamp entry (true/false)
 
 ### config.ts Settings
 
@@ -199,6 +203,34 @@ You can configure the application by modifying the `.env` file or the `config.ts
 - `useCustomSoundtrack`: Enable custom soundtrack (default: false)
 - `soundtrackPath`: Path to the soundtrack file (default: audio/slowlife.mp3)
 - `soundtrackVolume`: Volume level for the soundtrack (default: 0.5)
+- `manualTimestampEntry`: Enable manual timestamp entry (default: false)
+
+## Manual Timestamp Entry
+
+The application supports manually specifying timestamps for clip extraction instead of relying on automatic analysis of the transcript. This is useful when:
+
+- You want to extract specific moments from the video that you already know
+- You need precise control over which segments of the video are included in the montage
+- The automated extraction might not correctly identify the most important moments
+
+### How it works
+
+When this feature is enabled:
+1. The application will still download and analyze the transcript for reference
+2. Instead of automatically selecting clips, it will prompt you to enter timestamps
+3. For each clip, you'll enter the start time in MM:SS or HH:MM:SS format
+4. You can choose to use the default clip duration or specify an end time
+5. The clips will be extracted from the video based on your manual timestamps
+
+### Configuration
+
+To enable manual timestamp entry, set the following in your `.env` file:
+
+```
+MANUAL_TIMESTAMP_ENTRY=true
+```
+
+You can still combine this with other options like audio removal, subtitle removal, and custom soundtrack.
 
 ## Audio & Subtitle Removal
 
