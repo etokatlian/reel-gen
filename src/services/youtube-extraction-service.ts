@@ -148,22 +148,70 @@ export async function createVideoMontage(
   console.log("Creating video montage from clips...");
   
   try {
-    // Generate a file with the list of clips
-    const clipListPath = path.join(videoDir, `${videoData.videoId}_clip_list.txt`);
-    const clipListContent = clipPaths.map(clipPath => `file '${clipPath}'`).join('\n');
-    fs.writeFileSync(clipListPath, clipListContent);
-    
-    // Create montage using FFmpeg concat demuxer
-    const args = [
-      '-y',
-      '-f', 'concat',
-      '-safe', '0',
-      '-i', clipListPath,
-      '-c', 'copy',
-      outputVideoPath
-    ];
-    
-    await spawnFFmpeg(args);
+    // Check if we're using a custom soundtrack
+    if (config.useCustomSoundtrack && fs.existsSync(config.soundtrackPath)) {
+      console.log(`Adding soundtrack: ${config.soundtrackPath}`);
+      
+      // We'll create a custom approach using filter_complex
+      // First, create temporary intermediate file with concatenated clips
+      const tempOutputPath = path.join(videoDir, `${videoData.videoId}_temp_montage.mp4`);
+      
+      // Generate a file with the list of clips
+      const clipListPath = path.join(videoDir, `${videoData.videoId}_clip_list.txt`);
+      const clipListContent = clipPaths.map(clipPath => `file '${clipPath}'`).join('\n');
+      fs.writeFileSync(clipListPath, clipListContent);
+      
+      // First create a temp file with concatenated clips
+      let args = [
+        '-y',
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', clipListPath,
+        '-c', 'copy',
+        tempOutputPath
+      ];
+      
+      await spawnFFmpeg(args);
+      
+      // Now add the soundtrack to the temp file
+      args = [
+        '-y',
+        '-i', tempOutputPath,
+        '-i', config.soundtrackPath,
+        '-filter_complex', `[1:a]volume=${config.soundtrackVolume}[a]`,
+        '-map', '0:v',
+        '-map', '[a]',
+        '-c:v', 'copy',
+        '-c:a', 'aac',
+        '-shortest',
+        outputVideoPath
+      ];
+      
+      await spawnFFmpeg(args);
+      
+      // Clean up temp file
+      if (fs.existsSync(tempOutputPath)) {
+        fs.unlinkSync(tempOutputPath);
+      }
+    } else {
+      // Original behavior - no soundtrack
+      // Generate a file with the list of clips
+      const clipListPath = path.join(videoDir, `${videoData.videoId}_clip_list.txt`);
+      const clipListContent = clipPaths.map(clipPath => `file '${clipPath}'`).join('\n');
+      fs.writeFileSync(clipListPath, clipListContent);
+      
+      // Create montage using FFmpeg concat demuxer
+      const args = [
+        '-y',
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', clipListPath,
+        '-c', 'copy',
+        outputVideoPath
+      ];
+      
+      await spawnFFmpeg(args);
+    }
     
     console.log(`Video montage created at: ${outputVideoPath}`);
     
@@ -351,6 +399,44 @@ export async function processExistingClips(
     console.error("Error processing video clips:", error);
     throw new Error(`Failed to process video clips: ${error}`);
   }
+}
+
+/**
+ * Add a soundtrack to an existing video
+ * @param inputPath Path to input video
+ * @param outputPath Path to save the output video
+ * @param soundtrackPath Path to the soundtrack file
+ * @param volume Volume level (0.0-1.0)
+ */
+export async function addSoundtrackToVideo(
+  inputPath: string,
+  outputPath: string,
+  soundtrackPath: string,
+  volume: number = 0.5
+): Promise<void> {
+  console.log(`Adding soundtrack to video: ${path.basename(inputPath)}`);
+  
+  if (!fs.existsSync(soundtrackPath)) {
+    throw new Error(`Soundtrack file not found: ${soundtrackPath}`);
+  }
+  
+  // FFmpeg arguments
+  const args = [
+    '-y',
+    '-i', inputPath,
+    '-i', soundtrackPath,
+    '-filter_complex', `[1:a]volume=${volume}[a]`,
+    '-map', '0:v',
+    '-map', '[a]',
+    '-c:v', 'copy',
+    '-c:a', 'aac',
+    '-shortest',
+    outputPath
+  ];
+  
+  await spawnFFmpeg(args);
+  
+  console.log(`Video with soundtrack saved to: ${outputPath}`);
 }
 
 /**

@@ -11,11 +11,13 @@ This application processes YouTube videos in two different ways:
   - Extract key moments using OpenAI's GPT models
   - Generate images representing those key moments using Hugging Face
   - Create short videos with zoom effects from the generated images
+  - **Add custom soundtrack** to generated videos
 - **Direct Extraction Approach**:
   - Extract screenshots at key moments from the original video
   - Extract short video clips from the most relevant parts
   - Create a montage of the extracted clips
   - **Remove audio and/or subtitles** from extracted clips
+  - **Add custom soundtrack** to montage videos
 - Organized output with all assets saved in a structured directory
 
 ## Project Structure
@@ -52,6 +54,7 @@ In this approach:
 - The transcript is analyzed by OpenAI's GPT models to identify key moments
 - Images are generated using Hugging Face's Stable Diffusion models
 - A short video is created from these images using FFmpeg
+- A custom soundtrack can be added to the video
 
 ### 3. Direct Extraction Approach
 
@@ -61,6 +64,7 @@ In this approach:
 - Short video clips are extracted at key moments
 - Audio and/or subtitles can be optionally removed from clips
 - A montage video is created from these clips
+- A custom soundtrack can be added to the montage
 
 ## System Requirements
 
@@ -97,6 +101,9 @@ In this approach:
    HUGGINGFACE_API_KEY=your_huggingface_api_key
    OPENAI_API_KEY=your_openai_api_key
    VIDEO_ENABLED=true
+   USE_CUSTOM_SOUNDTRACK=true
+   SOUNDTRACK_PATH=audio/slowlife.mp3
+   SOUNDTRACK_VOLUME=0.5
    ```
 
    ### For Direct Video Extraction:
@@ -106,6 +113,9 @@ In this approach:
    EXTRACTION_QUALITY=medium
    REMOVE_AUDIO=false
    REMOVE_SUBTITLES=false
+   USE_CUSTOM_SOUNDTRACK=true
+   SOUNDTRACK_PATH=audio/slowlife.mp3
+   SOUNDTRACK_VOLUME=0.5
    ```
 
 ## Usage
@@ -175,6 +185,9 @@ You can configure the application by modifying the `.env` file or the `config.ts
 - `EXTRACTION_QUALITY`: Quality of extraction (low, medium, high)
 - `REMOVE_AUDIO`: Remove audio from extracted clips (true/false)
 - `REMOVE_SUBTITLES`: Remove subtitles/text from extracted clips (true/false)
+- `USE_CUSTOM_SOUNDTRACK`: Enable custom soundtrack (true/false)
+- `SOUNDTRACK_PATH`: Path to the soundtrack file (default: audio/slowlife.mp3)
+- `SOUNDTRACK_VOLUME`: Volume level for the soundtrack (0.0-1.0, default: 0.5)
 
 ### config.ts Settings
 
@@ -183,6 +196,9 @@ You can configure the application by modifying the `.env` file or the `config.ts
 - `outputDirectory`: Base directory for output files (default: "output")
 - `removeAudio`: Remove audio from extracted clips (default: false)
 - `removeSubtitles`: Remove subtitles from extracted clips (default: false)
+- `useCustomSoundtrack`: Enable custom soundtrack (default: false)
+- `soundtrackPath`: Path to the soundtrack file (default: audio/slowlife.mp3)
+- `soundtrackVolume`: Volume level for the soundtrack (default: 0.5)
 
 ## Audio & Subtitle Removal
 
@@ -232,6 +248,49 @@ const processedPaths = await processExistingClips(
   'processed_clips',           // Output directory
   true,                        // Remove audio
   true                         // Remove subtitles
+);
+```
+
+## Custom Soundtrack
+
+The application supports adding a custom soundtrack to both AI-generated videos and extracted video montages. This allows you to:
+
+- Replace the original audio with your preferred music
+- Create a consistent sound across all your generated videos
+- Enhance viewer engagement with appropriate background music
+
+### How it works
+
+The functionality uses FFmpeg's audio processing capabilities:
+- For AI-generated videos: The soundtrack is mixed in during the image-to-video process
+- For extracted video montages: The soundtrack replaces or overlays the original audio
+- Volume controls allow you to adjust the soundtrack's loudness
+
+### Configuration
+
+To enable the custom soundtrack, set the following in your `.env` file:
+
+```
+USE_CUSTOM_SOUNDTRACK=true      # Enable custom soundtrack
+SOUNDTRACK_PATH=audio/slowlife.mp3  # Path to your MP3 file
+SOUNDTRACK_VOLUME=0.5           # Volume level (0.0-1.0)
+```
+
+The application comes with a default soundtrack (`audio/slowlife.mp3`), but you can specify any MP3 file path.
+
+### Usage in code
+
+If you need to add a soundtrack to an existing video programmatically, you can use the `addSoundtrackToVideo` function:
+
+```typescript
+import { addSoundtrackToVideo } from './services/youtube-extraction-service';
+
+// Add soundtrack to a video
+await addSoundtrackToVideo(
+  'input.mp4',             // Input video path
+  'output_with_music.mp4', // Output video path
+  'audio/slowlife.mp3',    // Soundtrack path
+  0.5                      // Volume level (0.0-1.0)
 );
 ```
 

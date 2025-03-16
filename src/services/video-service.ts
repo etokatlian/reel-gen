@@ -46,16 +46,43 @@ export async function createShortVideo(
       ffmpegArgs.push('-loop', '1', '-t', durationPerImage.toString(), '-i', imagePath);
     });
 
-    // Add filter for concatenation and output options
-    ffmpegArgs.push(
-      '-filter_complex', `concat=n=${videoData.imagePaths.length}:v=1:a=0[v]`,
-      '-map', '[v]',
-      '-c:v', 'libx264',
-      '-preset', 'ultrafast', // Use ultrafast preset for speed
-      '-pix_fmt', 'yuv420p',
-      '-t', (durationPerImage * videoData.imagePaths.length).toString(),
-      outputVideoPath
-    );
+    // Add soundtrack if enabled
+    let filterComplex = `concat=n=${videoData.imagePaths.length}:v=1:a=0[v]`;
+    
+    if (config.useCustomSoundtrack && fs.existsSync(config.soundtrackPath)) {
+      console.log(`Adding soundtrack: ${config.soundtrackPath}`);
+      
+      // Add soundtrack as input
+      ffmpegArgs.push('-i', config.soundtrackPath);
+      
+      // Modify filter complex to include audio
+      filterComplex = `concat=n=${videoData.imagePaths.length}:v=1:a=0[v];[${videoData.imagePaths.length}:a]volume=${config.soundtrackVolume}[a]`;
+      
+      // Add filter for concatenation and output options with audio
+      ffmpegArgs.push(
+        '-filter_complex', filterComplex,
+        '-map', '[v]',
+        '-map', '[a]',
+        '-c:v', 'libx264',
+        '-c:a', 'aac',
+        '-shortest', // End when the shortest input stream ends
+        '-preset', 'ultrafast', // Use ultrafast preset for speed
+        '-pix_fmt', 'yuv420p',
+        '-t', totalDuration.toString(), // Limit to total duration
+        outputVideoPath
+      );
+    } else {
+      // Original behavior - no soundtrack
+      ffmpegArgs.push(
+        '-filter_complex', filterComplex,
+        '-map', '[v]',
+        '-c:v', 'libx264',
+        '-preset', 'ultrafast', // Use ultrafast preset for speed
+        '-pix_fmt', 'yuv420p',
+        '-t', (durationPerImage * videoData.imagePaths.length).toString(),
+        outputVideoPath
+      );
+    }
     
     // For debugging - save the command to a file
     const commandPath = path.join(videoDir, `${videoData.videoId}_ffmpeg_command.txt`);

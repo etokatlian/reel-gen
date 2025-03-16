@@ -1,4 +1,5 @@
 import * as dotenv from "dotenv";
+import * as path from "path";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -17,6 +18,9 @@ export interface Config {
   extractionQuality: "low" | "medium" | "high";
   removeAudio: boolean; // Added: Option to remove audio from clips
   removeSubtitles: boolean; // Added: Option to remove subtitles from clips
+  useCustomSoundtrack: boolean; // New: Option to add custom soundtrack
+  soundtrackPath: string; // New: Path to the soundtrack file
+  soundtrackVolume: number; // New: Volume level for the soundtrack (0.0-1.0)
 }
 
 // Validate required environment variables
@@ -43,8 +47,11 @@ export const config: Config = {
   extractionEnabled: process.env.EXTRACTION_ENABLED === "true" || false, // Feature toggle for video extraction
   clipDuration: parseInt(process.env.CLIP_DURATION || "5", 10), // Duration of each clip in seconds
   extractionQuality: (process.env.EXTRACTION_QUALITY || "medium") as "low" | "medium" | "high",
-  removeAudio: process.env.REMOVE_AUDIO === "true" || false, // New option to remove audio
-  removeSubtitles: process.env.REMOVE_SUBTITLES === "true" || false // New option to remove subtitles
+  removeAudio: process.env.REMOVE_AUDIO === "true" || false, // Option to remove audio
+  removeSubtitles: process.env.REMOVE_SUBTITLES === "true" || false, // Option to remove subtitles
+  useCustomSoundtrack: process.env.USE_CUSTOM_SOUNDTRACK === "true" || false, // Option to use custom soundtrack
+  soundtrackPath: process.env.SOUNDTRACK_PATH || path.join(process.cwd(), "audio", "slowlife.mp3"), // Default soundtrack
+  soundtrackVolume: parseFloat(process.env.SOUNDTRACK_VOLUME || "0.5") // Default volume: 50%
 };
 
 // Debug: Log environment variables (without showing actual values)
@@ -65,6 +72,12 @@ export const logConfigStatus = (): void => {
     console.log("  - Extraction quality:", config.extractionQuality);
     console.log("  - Remove audio:", config.removeAudio ? "Yes" : "No");
     console.log("  - Remove subtitles:", config.removeSubtitles ? "Yes" : "No");
+  }
+  
+  if (config.useCustomSoundtrack) {
+    console.log("- Custom soundtrack:", "Enabled");
+    console.log("  - Soundtrack path:", config.soundtrackPath);
+    console.log("  - Soundtrack volume:", config.soundtrackVolume * 100 + "%");
   }
 };
 
