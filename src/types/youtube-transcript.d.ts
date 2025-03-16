@@ -17,3 +17,20 @@ declare module "youtube-transcript" {
     ): Promise<TranscriptResponse[]>;
   }
 }
+
+// Application-specific types
+export interface ProcessedVideo {
+  videoId: string;
+  url: string;
+  transcript: string;
+  keyMoments?: string[];
+  imagePaths?: string[];
+  outputDirectory: string;
+  transcriptPath?: string;
+  momentPaths?: string[];
+}
+
+export interface ImageGenerationResult {
+  path: string;
+  description: string;
+}

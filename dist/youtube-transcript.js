@@ -162,3 +162,4 @@ async function main() {
 }
 // Run the program
 main().catch(console.error);
+//# sourceMappingURL=youtube-transcript.js.map

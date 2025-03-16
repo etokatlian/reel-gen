@@ -1,90 +1,88 @@
-# YouTube Transcript Downloader & Image Generator
+# YouTube Content Visualizer
 
-A command-line tool to download the transcript from any YouTube video, analyze its content, and generate relevant images.
+This application downloads YouTube video transcripts and generates images that directly represent the key moments discussed in the video content.
 
 ## Features
 
-- Extracts video ID from any YouTube URL format
-- Downloads the transcript text
-- Analyzes the transcript content using LangChain and OpenAI
-- Generates images based on the content using Hugging Face's Stable Diffusion model
-- Saves the transcript, content description, and generated images
+- Download transcripts from any YouTube video
+- Analyze video content to extract key visual moments
+- Generate images that accurately represent the actual content (not just style variations)
+- Organized output with transcripts and images saved in a structured directory
 
-## Prerequisites
+## Requirements
 
-- Node.js (v14 or higher)
-- npm or pnpm
-- Hugging Face API key (for image generation)
-- OpenAI API key (for content analysis)
+- Node.js (v16+)
+- Hugging Face API key (required for image generation)
+- OpenAI API key (optional for content analysis)
 
 ## Installation
 
-Clone this repository and install dependencies:
+1. Clone this repository
+2. Install dependencies:
+   ```
+   npm install
+   ```
+3. Create a `.env` file in the project root with your API keys:
+   ```
+   HUGGINGFACE_API_KEY=your_huggingface_api_key
+   OPENAI_API_KEY=your_openai_api_key
+   ```
 
-```bash
-git clone <repository-url>
-cd <repository-directory>
-pnpm install
+## Usage
+
+Run the application:
+
+```
+npm start
+```
+
+Follow the prompts to enter a YouTube video URL. The application will:
+
+1. Download the video transcript
+2. Analyze the content to identify key moments (if OpenAI API key is provided)
+3. Generate images that accurately represent those key moments (using Hugging Face's Stable Diffusion)
+4. Save everything to an organized output directory
+
+## Output Structure
+
+```
+output/
+└── [video_id]/
+    ├── transcript/
+    │   ├── [video_id]_transcript.txt
+    │   ├── [video_id]_all_moments.txt
+    │   ├── [video_id]_moment_1.txt
+    │   ├── [video_id]_moment_2.txt
+    │   └── [video_id]_moment_3.txt
+    └── images/
+        ├── [video_id]_image_1.png
+        ├── [video_id]_image_1_description.txt
+        ├── [video_id]_image_2.png
+        ├── [video_id]_image_2_description.txt
+        ├── [video_id]_image_3.png
+        └── [video_id]_image_3_description.txt
 ```
 
 ## Configuration
 
-Create a `.env` file in the root directory with your API keys:
+You can configure the application by modifying the `config.ts` file:
 
+- `imagesToGenerate`: Number of images to generate (default: 3)
+- `outputDirectory`: Base directory for output files (default: "output")
+- Model endpoints and other parameters can also be customized
+
+## Development
+
+Build the TypeScript code:
 ```
-HUGGINGFACE_API_KEY=your_huggingface_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-You can copy the `.env.example` file and replace the placeholder values with your actual API keys.
-
-## Usage
-
-Run the script:
-
-```bash
-pnpm start
+npm run build
 ```
 
-You will be prompted to enter a YouTube video URL. The script will:
-
-1. Extract the video ID from the URL
-2. Download the transcript
-3. Save it to a file in the `transcripts` folder
-4. Analyze the transcript content (if OpenAI API key is provided)
-5. Generate 3 images based on the content (if Hugging Face API key is provided)
-6. Save the images to the `transcripts/images` folder
-
-Example:
-
+Run in development mode with ts-node:
 ```
-YouTube Transcript Downloader & Image Generator
----------------------------------------------
-Enter YouTube video URL: https://www.youtube.com/watch?v=dQw4w9WgXcQ
-Downloading transcript for video ID: dQw4w9WgXcQ
-Transcript saved to: /path/to/transcripts/dQw4w9WgXcQ.txt
-Transcript downloaded successfully!
-Analyzing transcript content...
-Description saved to: /path/to/transcripts/dQw4w9WgXcQ_description.txt
-Generating images based on the content...
-Generating 3 images based on the description...
-Generating image 1/3...
-Image saved to: /path/to/transcripts/images/dQw4w9WgXcQ_1.png
-Generating image 2/3...
-Image saved to: /path/to/transcripts/images/dQw4w9WgXcQ_2.png
-Generating image 3/3...
-Image saved to: /path/to/transcripts/images/dQw4w9WgXcQ_3.png
-Process completed successfully!
-Generated 3 images.
+npm run dev
 ```
-
-## Limitations
-
-- The video must have captions/subtitles available
-- Only works with public videos (not private or unlisted)
-- Currently only downloads the default language transcript
-- Requires API keys for full functionality
 
 ## License
 
-ISC 
+MIT

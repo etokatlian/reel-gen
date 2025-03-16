@@ -1,30 +1,40 @@
 {
-  "name": "shorts-poc",
+  "name": "youtube-content-visualizer",
   "version": "1.0.0",
-  "description": "YouTube Transcript Downloader & Image Generator",
-  "main": "index.js",
+  "description": "Convert YouTube videos to compelling images based on content",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "start": "npm run build && node dist/youtube-transcript.js"
+    "start": "npm run build && node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "lint": "eslint src/**/*.ts"
   },
-  "keywords": [],
+  "keywords": [
+    "youtube",
+    "transcript",
+    "image-generation",
+    "content-analysis",
+    "ai"
+  ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@huggingface/inference": "^3.5.2",
     "@langchain/core": "^0.3.42",
     "@langchain/openai": "^0.4.4",
-    "@types/dotenv": "^8.2.3",
-    "@types/readline-sync": "^1.4.8",
     "dotenv": "^16.4.7",
-    "langchain": "^0.3.19",
     "readline-sync": "^1.4.10",
     "youtube-transcript": "^1.2.1",
     "youtube-transcript-api": "^1.1.2"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.12",
     "@types/node": "^22.13.10",
+    "@types/readline-sync": "^1.4.8",
+    "@typescript-eslint/eslint-plugin": "^7.4.0",
+    "@typescript-eslint/parser": "^7.4.0",
+    "eslint": "^8.57.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
   }
 }
