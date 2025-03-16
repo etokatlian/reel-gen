@@ -217,20 +217,140 @@ async function extractVideoClip(
   // First, get video URL with yt-dlp
   const videoUrl = await getVideoDownloadUrl(videoId);
   
-  // Extract clip with FFmpeg
+  // Extract clip with FFmpeg, applying subtitle and audio removal options if enabled
   const args = [
     '-y',
     '-ss', formatTimestamp(startTime),
     '-i', videoUrl,
-    '-t', duration.toString(),
-    '-c:v', 'libx264',
-    '-c:a', 'aac',
-    '-preset', 'ultrafast',
-    '-crf', '22',
-    outputPath
+    '-t', duration.toString()
   ];
   
+  // Add video codec and quality settings
+  args.push('-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '22');
+  
+  // Handle audio based on config
+  if (config.removeAudio) {
+    // Remove audio stream entirely
+    args.push('-an');
+    console.log('Removing audio from clip...');
+  } else {
+    // Keep audio with AAC codec
+    args.push('-c:a', 'aac');
+  }
+  
+  // Handle subtitles based on config
+  if (config.removeSubtitles) {
+    // Remove subtitle streams
+    args.push('-sn');
+    console.log('Removing subtitles from clip...');
+  }
+  
+  // Add output path
+  args.push(outputPath);
+  
   await spawnFFmpeg(args);
+}
+
+/**
+ * Process a clip to remove audio and/or subtitles
+ * @param inputPath Path to input video
+ * @param outputPath Path to save the processed video
+ * @param removeAudio Whether to remove audio
+ * @param removeSubtitles Whether to remove subtitles
+ */
+export async function processVideoClip(
+  inputPath: string,
+  outputPath: string,
+  removeAudio: boolean = false,
+  removeSubtitles: boolean = false
+): Promise<void> {
+  console.log(`Processing video clip: ${path.basename(inputPath)}`);
+  
+  // FFmpeg arguments
+  const args = [
+    '-y',
+    '-i', inputPath
+  ];
+  
+  // Copy video stream
+  args.push('-c:v', 'copy');
+  
+  // Handle audio based on removeAudio flag
+  if (removeAudio) {
+    // Remove audio stream entirely
+    args.push('-an');
+    console.log('Removing audio...');
+  } else {
+    // Copy audio stream
+    args.push('-c:a', 'copy');
+  }
+  
+  // Handle subtitles based on removeSubtitles flag
+  if (removeSubtitles) {
+    // Remove subtitle streams
+    args.push('-sn');
+    console.log('Removing subtitles...');
+  }
+  
+  // Add output path
+  args.push(outputPath);
+  
+  await spawnFFmpeg(args);
+  
+  console.log(`Processed clip saved to: ${outputPath}`);
+}
+
+/**
+ * Process existing clips to remove audio and/or subtitles
+ * @param clipPaths Array of clip file paths
+ * @param outputDir Directory to save processed clips
+ * @param removeAudio Whether to remove audio
+ * @param removeSubtitles Whether to remove subtitles
+ * @returns Promise resolving to array of processed clip file paths
+ */
+export async function processExistingClips(
+  clipPaths: string[],
+  outputDir: string,
+  removeAudio: boolean = false,
+  removeSubtitles: boolean = false
+): Promise<string[]> {
+  if (!clipPaths || clipPaths.length === 0) {
+    throw new Error("No video clips provided for processing");
+  }
+  
+  if (!removeAudio && !removeSubtitles) {
+    return clipPaths; // No processing needed
+  }
+  
+  // Ensure output directory exists
+  ensureDirectoryExists(outputDir);
+  
+  const processedClipPaths: string[] = [];
+  
+  try {
+    for (let i = 0; i < clipPaths.length; i++) {
+      const clipPath = clipPaths[i];
+      const clipName = path.basename(clipPath);
+      
+      // Add suffix to indicate processing
+      const suffix = [];
+      if (removeAudio) suffix.push('noaudio');
+      if (removeSubtitles) suffix.push('nosubs');
+      
+      const outputPath = path.join(
+        outputDir,
+        `${path.basename(clipName, path.extname(clipName))}_${suffix.join('_')}${path.extname(clipName)}`
+      );
+      
+      await processVideoClip(clipPath, outputPath, removeAudio, removeSubtitles);
+      processedClipPaths.push(outputPath);
+    }
+    
+    return processedClipPaths;
+  } catch (error) {
+    console.error("Error processing video clips:", error);
+    throw new Error(`Failed to process video clips: ${error}`);
+  }
 }
 
 /**

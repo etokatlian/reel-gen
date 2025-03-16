@@ -15,6 +15,7 @@ This application processes YouTube videos in two different ways:
   - Extract screenshots at key moments from the original video
   - Extract short video clips from the most relevant parts
   - Create a montage of the extracted clips
+  - **Remove audio and/or subtitles** from extracted clips
 - Organized output with all assets saved in a structured directory
 
 ## Project Structure
@@ -58,6 +59,7 @@ In this approach:
 - Key timestamps are determined from the transcript
 - Screenshots are captured at those timestamps using FFmpeg and yt-dlp
 - Short video clips are extracted at key moments
+- Audio and/or subtitles can be optionally removed from clips
 - A montage video is created from these clips
 
 ## System Requirements
@@ -102,6 +104,8 @@ In this approach:
    EXTRACTION_ENABLED=true
    CLIP_DURATION=5
    EXTRACTION_QUALITY=medium
+   REMOVE_AUDIO=false
+   REMOVE_SUBTITLES=false
    ```
 
 ## Usage
@@ -169,12 +173,67 @@ You can configure the application by modifying the `.env` file or the `config.ts
 - `EXTRACTION_ENABLED`: Enable direct extraction from YouTube (true/false)
 - `CLIP_DURATION`: Duration of each extracted clip in seconds (default: 5)
 - `EXTRACTION_QUALITY`: Quality of extraction (low, medium, high)
+- `REMOVE_AUDIO`: Remove audio from extracted clips (true/false)
+- `REMOVE_SUBTITLES`: Remove subtitles/text from extracted clips (true/false)
 
 ### config.ts Settings
 
 - `imagesToGenerate`: Number of images/screenshots/clips to generate (default: 3)
 - `videoDuration`: Total duration of the generated video in seconds (default: 15)
 - `outputDirectory`: Base directory for output files (default: "output")
+- `removeAudio`: Remove audio from extracted clips (default: false)
+- `removeSubtitles`: Remove subtitles from extracted clips (default: false)
+
+## Audio & Subtitle Removal
+
+The application supports removing audio and/or subtitles from extracted YouTube video clips. This is particularly useful when:
+
+- You want to create clips without the original audio (for adding your own voiceover or music)
+- The video contains burned-in captions or subtitles that you want to remove
+- You need clean video footage without text overlays
+
+### How it works
+
+The functionality uses FFmpeg's stream manipulation capabilities:
+- `-an` flag is used to remove audio streams
+- `-sn` flag is used to remove subtitle streams
+
+### Configuration
+
+To enable these features, set the following in your `.env` file:
+
+```
+REMOVE_AUDIO=true    # Set to true to remove audio from clips
+REMOVE_SUBTITLES=true # Set to true to remove subtitles from clips
+```
+
+Note that subtitle removal only works for actual subtitle streams. For burned-in text that is part of the video image, more advanced processing would be required.
+
+### Usage in code
+
+If you need to process existing clips programmatically, you can use the `processVideoClip` function:
+
+```typescript
+import { processVideoClip } from './services/youtube-extraction-service';
+
+// Process a single clip
+await processVideoClip(
+  'input.mp4',   // Input file path
+  'output.mp4',  // Output file path
+  true,          // Remove audio
+  true           // Remove subtitles
+);
+
+// For batch processing multiple clips
+import { processExistingClips } from './services/youtube-extraction-service';
+
+const processedPaths = await processExistingClips(
+  ['clip1.mp4', 'clip2.mp4'],  // Input clips
+  'processed_clips',           // Output directory
+  true,                        // Remove audio
+  true                         // Remove subtitles
+);
+```
 
 ## Development Guide
 
@@ -226,6 +285,7 @@ The project uses Jest for testing. Critical functions have unit tests to prevent
 - Transcript fetching
 - Content analysis
 - Video generation and extraction
+- Audio and subtitle removal options
 
 Tests are focused on critical functionality rather than implementation details, making them more maintainable and less prone to breaking when refactoring.
 

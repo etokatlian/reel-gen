@@ -15,6 +15,8 @@ export interface Config {
   extractionEnabled: boolean;
   clipDuration: number;
   extractionQuality: "low" | "medium" | "high";
+  removeAudio: boolean; // Added: Option to remove audio from clips
+  removeSubtitles: boolean; // Added: Option to remove subtitles from clips
 }
 
 // Validate required environment variables
@@ -40,7 +42,9 @@ export const config: Config = {
   videoEnabled: process.env.VIDEO_ENABLED === "true" || false, // Feature toggle for video creation
   extractionEnabled: process.env.EXTRACTION_ENABLED === "true" || false, // Feature toggle for video extraction
   clipDuration: parseInt(process.env.CLIP_DURATION || "5", 10), // Duration of each clip in seconds
-  extractionQuality: (process.env.EXTRACTION_QUALITY || "medium") as "low" | "medium" | "high"
+  extractionQuality: (process.env.EXTRACTION_QUALITY || "medium") as "low" | "medium" | "high",
+  removeAudio: process.env.REMOVE_AUDIO === "true" || false, // New option to remove audio
+  removeSubtitles: process.env.REMOVE_SUBTITLES === "true" || false // New option to remove subtitles
 };
 
 // Debug: Log environment variables (without showing actual values)
@@ -59,6 +63,8 @@ export const logConfigStatus = (): void => {
   if (config.extractionEnabled) {
     console.log("  - Clip duration:", config.clipDuration, "seconds");
     console.log("  - Extraction quality:", config.extractionQuality);
+    console.log("  - Remove audio:", config.removeAudio ? "Yes" : "No");
+    console.log("  - Remove subtitles:", config.removeSubtitles ? "Yes" : "No");
   }
 };
 

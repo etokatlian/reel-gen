@@ -19,9 +19,11 @@ import {
   extractKeyClipRanges,
   extractScreenshots,
   extractVideoClips,
-  createVideoMontage
+  createVideoMontage,
+  processExistingClips
 } from "./services/youtube-extraction-service";
 import { ProcessedVideo } from "./types/youtube-transcript";
+import * as path from "path";
 
 /**
  * Main application function
@@ -99,8 +101,15 @@ async function main(): Promise<void> {
         config.clipDuration
       );
       
-      // Extract video clips
+      // Extract video clips (audio/subtitle removal handled within extractVideoClips now)
       displayStatus("Extracting video clips...");
+      if (config.removeAudio) {
+        displayStatus("Audio removal enabled");
+      }
+      if (config.removeSubtitles) {
+        displayStatus("Subtitle removal enabled");
+      }
+      
       const clipPaths = await extractVideoClips(processedVideo, clipRanges);
       processedVideo = {
         ...processedVideo,

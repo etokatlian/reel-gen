@@ -68,6 +68,8 @@ export function displayApiKeyHelp(): void {
   console.log("  EXTRACTION_ENABLED=true");
   console.log("  CLIP_DURATION=5 (duration in seconds for each clip)");
   console.log("  EXTRACTION_QUALITY=medium (low, medium, or high)");
+  console.log("  REMOVE_AUDIO=true/false (remove audio from extracted clips)");
+  console.log("  REMOVE_SUBTITLES=true/false (remove subtitles from extracted clips)");
   console.log("\nOr set these as environment variables before running the application.");
 }
 
@@ -103,6 +105,13 @@ export function displayCompletion(
     clipPaths.forEach((path, index) => {
       console.log(`Clip ${index + 1}: ${path}`);
     });
+    
+    // Display clip processing details if extraction is enabled
+    if (config.extractionEnabled) {
+      console.log("\nClip processing options:");
+      console.log(`- Audio: ${config.removeAudio ? 'Removed' : 'Preserved'}`);
+      console.log(`- Subtitles: ${config.removeSubtitles ? 'Removed' : 'Preserved'}`);
+    }
   }
   
   if (videoPath) {
@@ -113,6 +122,12 @@ export function displayCompletion(
       console.log("Video format: MP4 (H.264) with zoom effects");
     } else {
       console.log(`Format: MP4 with clips from the original video`);
+      if (config.removeAudio) {
+        console.log("Audio: Removed from all clips");
+      }
+      if (config.removeSubtitles) {
+        console.log("Subtitles: Removed from all clips");
+      }
     }
   }
   
