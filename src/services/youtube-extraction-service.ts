@@ -4,6 +4,7 @@ import * as childProcess from "child_process";
 import { ProcessedVideo } from "../types/youtube-transcript";
 import { ensureDirectoryExists } from "../utils/file-utils";
 import { config } from "../config";
+import { createVoiceoverScript, generateVoiceover, getAudioDuration } from "./tts-service";
 
 /**
  * Extracts screenshots from a YouTube video at specific timestamps
@@ -148,69 +149,143 @@ export async function createVideoMontage(
   console.log("Creating video montage from clips...");
   
   try {
-    // Check if we're using a custom soundtrack
-    if (config.useCustomSoundtrack && fs.existsSync(config.soundtrackPath)) {
-      console.log(`Adding soundtrack: ${config.soundtrackPath}`);
-      
-      // We'll create a custom approach using filter_complex
-      // First, create temporary intermediate file with concatenated clips
-      const tempOutputPath = path.join(videoDir, `${videoData.videoId}_temp_montage.mp4`);
-      
-      // Generate a file with the list of clips
-      const clipListPath = path.join(videoDir, `${videoData.videoId}_clip_list.txt`);
-      const clipListContent = clipPaths.map(clipPath => `file '${clipPath}'`).join('\n');
-      fs.writeFileSync(clipListPath, clipListContent);
-      
-      // First create a temp file with concatenated clips
-      let args = [
-        '-y',
-        '-f', 'concat',
-        '-safe', '0',
-        '-i', clipListPath,
-        '-c', 'copy',
-        tempOutputPath
-      ];
-      
-      await spawnFFmpeg(args);
-      
-      // Now add the soundtrack to the temp file
-      args = [
-        '-y',
-        '-i', tempOutputPath,
-        '-i', config.soundtrackPath,
-        '-filter_complex', `[1:a]volume=${config.soundtrackVolume}[a]`,
-        '-map', '0:v',
-        '-map', '[a]',
-        '-c:v', 'copy',
-        '-c:a', 'aac',
-        '-shortest',
-        outputVideoPath
-      ];
-      
-      await spawnFFmpeg(args);
-      
-      // Clean up temp file
-      if (fs.existsSync(tempOutputPath)) {
-        fs.unlinkSync(tempOutputPath);
+    // Generate a file with the list of clips
+    const clipListPath = path.join(videoDir, `${videoData.videoId}_clip_list.txt`);
+    const clipListContent = clipPaths.map(clipPath => `file '${clipPath}'`).join('\n');
+    fs.writeFileSync(clipListPath, clipListContent);
+    
+    // Create temporary intermediate file with concatenated clips
+    const tempOutputPath = path.join(videoDir, `${videoData.videoId}_temp_montage.mp4`);
+    
+    // First create a temp file with concatenated clips
+    let args = [
+      '-y',
+      '-f', 'concat',
+      '-safe', '0',
+      '-i', clipListPath,
+      '-c', 'copy',
+      tempOutputPath
+    ];
+    
+    await spawnFFmpeg(args);
+    
+    // Get the duration of the temp video
+    const videoDuration = await getVideoDuration(tempOutputPath);
+    if (!videoDuration) {
+      throw new Error("Failed to get duration of concatenated video");
+    }
+    
+    console.log(`Original video montage duration: ${videoDuration} seconds`);
+    
+    // Truncate to 15 seconds if longer
+    const targetDuration = Math.min(videoDuration, config.videoDuration || 15);
+    console.log(`Target video duration: ${targetDuration} seconds`);
+    
+    // Generate voiceover if enabled
+    let voiceoverPath: string | null = null;
+    if (config.aiVoiceoverEnabled) {
+      console.log("Generating AI voiceover for the video...");
+      try {
+        // Using await with createVoiceoverScript as it's now async
+        const script = await createVoiceoverScript(videoData.transcript, 42); // Using ideal word count for ~15 seconds
+        const voiceoverOutputPath = path.join(videoDir, `${videoData.videoId}_voiceover.mp3`);
+        
+        // Generate voiceover without trying to time-stretch it
+        voiceoverPath = await generateVoiceover(script, voiceoverOutputPath);
+        console.log(`Voiceover generated at normal speaking rate`);
+      } catch (error) {
+        console.error("Error generating voiceover:", error);
+        console.log("Continuing without voiceover...");
       }
     } else {
-      // Original behavior - no soundtrack
-      // Generate a file with the list of clips
-      const clipListPath = path.join(videoDir, `${videoData.videoId}_clip_list.txt`);
-      const clipListContent = clipPaths.map(clipPath => `file '${clipPath}'`).join('\n');
-      fs.writeFileSync(clipListPath, clipListContent);
-      
-      // Create montage using FFmpeg concat demuxer
-      const args = [
-        '-y',
-        '-f', 'concat',
-        '-safe', '0',
-        '-i', clipListPath,
-        '-c', 'copy',
-        outputVideoPath
-      ];
-      
-      await spawnFFmpeg(args);
+      console.log("AI voiceover is disabled. To enable, set AI_VOICEOVER_ENABLED=true in your .env file");
+    }
+    
+    // Build the final video with audio
+    args = [
+      '-y',
+      '-i', tempOutputPath
+    ];
+    
+    // Add voiceover if available
+    if (voiceoverPath) {
+      args.push('-i', voiceoverPath);
+    }
+    
+    // Add soundtrack if enabled
+    let soundtrackUsed = false;
+    if (config.useCustomSoundtrack && fs.existsSync(config.soundtrackPath)) {
+      console.log(`Adding soundtrack: ${config.soundtrackPath}`);
+      args.push('-i', config.soundtrackPath);
+      soundtrackUsed = true;
+    }
+    
+    // Setup audio filter based on enabled features
+    let filterComplex = '';
+    let audioMapping = '';
+    
+    // Determine the audio input index
+    let voiceoverIndex = 1;
+    let soundtrackIndex = voiceoverPath ? 2 : 1;
+    
+    if (config.aiVoiceoverEnabled && voiceoverPath) {
+      if (!soundtrackUsed) {
+        // Only voiceover
+        filterComplex = `[${voiceoverIndex}:a]volume=${config.voiceoverVolume}[a]`;
+        audioMapping = '-map 0:v -map [a]';
+        console.log(`Using voiceover with volume: ${config.voiceoverVolume * 100}%`);
+      } else {
+        // Both voiceover and soundtrack - fixed to use amix with longest duration
+        filterComplex = `[${voiceoverIndex}:a]volume=${config.voiceoverVolume}[voice];` + 
+                       `[${soundtrackIndex}:a]volume=${config.soundtrackVolume}[music];` +
+                       `[voice][music]amix=inputs=2:duration=longest[a]`;
+        audioMapping = '-map 0:v -map [a]';
+        console.log(`Mixing voiceover (${config.voiceoverVolume * 100}%) with soundtrack (${config.soundtrackVolume * 100}%)`);
+      }
+    } else if (soundtrackUsed) {
+      // Only soundtrack - removed the aloop filter
+      filterComplex = `[${soundtrackIndex}:a]volume=${config.soundtrackVolume}[a]`;
+      audioMapping = '-map 0:v -map [a]';
+      console.log(`Using soundtrack with volume: ${config.soundtrackVolume * 100}%`);
+    } else if (!config.removeAudio) {
+      // No custom audio, keep original (if not removed)
+      audioMapping = '-map 0';
+      console.log("Using original audio from clips");
+    } else {
+      // Audio was removed and no other audio sources
+      audioMapping = '-map 0:v';
+      console.log("No audio in final video (original audio removed, no voiceover or soundtrack)");
+    }
+    
+    // Add filter complex if we have one
+    if (filterComplex) {
+      args.push('-filter_complex', filterComplex);
+    }
+    
+    // Add audio mapping
+    args.push(...audioMapping.split(' '));
+    
+    // Add encoding options - always copy video to avoid re-encoding
+    args.push(
+      '-c:v', 'copy',
+      '-c:a', 'aac'
+    );
+    
+    // Important! Set the duration to enforce the 15 second limit
+    args.push('-t', targetDuration.toString());
+    
+    // Save the FFmpeg command for debugging
+    const commandPath = path.join(videoDir, `${videoData.videoId}_ffmpeg_command.txt`);
+    fs.writeFileSync(commandPath, ['ffmpeg', ...args, outputVideoPath].join(' '));
+    
+    // Add output path to args
+    args.push(outputVideoPath);
+    
+    await spawnFFmpeg(args);
+    
+    // Clean up temp file
+    if (fs.existsSync(tempOutputPath)) {
+      fs.unlinkSync(tempOutputPath);
     }
     
     console.log(`Video montage created at: ${outputVideoPath}`);
@@ -220,6 +295,34 @@ export async function createVideoMontage(
     console.error("Error creating video montage:", error);
     throw new Error(`Failed to create video montage: ${error}`);
   }
+}
+
+/**
+ * Get the duration of a video file using FFmpeg
+ * @param videoPath Path to the video file
+ * @returns Promise resolving to the duration in seconds
+ */
+async function getVideoDuration(videoPath: string): Promise<number | null> {
+  return new Promise((resolve) => {
+    const command = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${videoPath}"`;
+    
+    childProcess.exec(command, (error, stdout, stderr) => {
+      if (error || stderr) {
+        console.error("Error getting video duration:", error || stderr);
+        resolve(null);
+        return;
+      }
+      
+      const duration = parseFloat(stdout.trim());
+      if (isNaN(duration)) {
+        console.error("Invalid duration:", stdout);
+        resolve(null);
+        return;
+      }
+      
+      resolve(duration);
+    });
+  });
 }
 
 /**
@@ -420,7 +523,13 @@ export async function addSoundtrackToVideo(
     throw new Error(`Soundtrack file not found: ${soundtrackPath}`);
   }
   
-  // FFmpeg arguments
+  // Get the video duration
+  const videoDuration = await getVideoDuration(inputPath);
+  if (!videoDuration) {
+    throw new Error("Failed to get video duration");
+  }
+  
+  // FFmpeg arguments with improved audio mix
   const args = [
     '-y',
     '-i', inputPath,
@@ -430,7 +539,7 @@ export async function addSoundtrackToVideo(
     '-map', '[a]',
     '-c:v', 'copy',
     '-c:a', 'aac',
-    '-shortest',
+    '-t', videoDuration.toString(),
     outputPath
   ];
   

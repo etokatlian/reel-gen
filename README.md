@@ -12,6 +12,7 @@ This application processes YouTube videos in two different ways:
   - Generate images representing those key moments using Hugging Face
   - Create short videos with zoom effects from the generated images
   - **Add custom soundtrack** to generated videos
+  - **Generate AI voiceover** based on transcript content
 - **Direct Extraction Approach**:
   - Extract screenshots at key moments from the original video
   - Extract short video clips from the most relevant parts
@@ -19,6 +20,7 @@ This application processes YouTube videos in two different ways:
   - Create a montage of the extracted clips
   - **Remove audio and/or subtitles** from extracted clips
   - **Add custom soundtrack** to montage videos
+  - **Generate AI voiceover** for the video montage
 - Organized output with all assets saved in a structured directory
 
 ## Project Structure
@@ -35,6 +37,7 @@ src/
 │   ├── analysis-service.ts          # Content analysis using OpenAI
 │   ├── image-service.ts             # Image generation using Hugging Face
 │   ├── video-service.ts             # Video creation with FFmpeg
+│   ├── tts-service.ts               # Text-to-speech for voiceover generation
 │   └── youtube-extraction-service.ts # Screenshot and clip extraction
 ├── types/                           # Type definitions
 │   └── youtube-transcript.d.ts
@@ -55,6 +58,7 @@ In this approach:
 - The transcript is analyzed by OpenAI's GPT models to identify key moments
 - Images are generated using Hugging Face's Stable Diffusion models
 - A short video is created from these images using FFmpeg
+- AI voiceover can be generated from the transcript content
 - A custom soundtrack can be added to the video
 
 ### 3. Direct Extraction Approach
@@ -65,6 +69,7 @@ In this approach:
 - Short video clips are extracted at key moments
 - Audio and/or subtitles can be optionally removed from clips
 - A montage video is created from these clips
+- AI voiceover can be generated from the transcript content
 - A custom soundtrack can be added to the montage
 
 ## System Requirements
@@ -73,7 +78,8 @@ In this approach:
 - FFmpeg (required for both approaches)
 - yt-dlp (required for direct extraction)
 - Hugging Face API key (required for AI-generated images)
-- OpenAI API key (optional for content analysis)
+- OpenAI API key (optional for content analysis and TTS)
+- ElevenLabs API key (optional for alternative TTS service)
 
 ## Installation
 
@@ -105,6 +111,10 @@ In this approach:
    USE_CUSTOM_SOUNDTRACK=true
    SOUNDTRACK_PATH=audio/slowlife.mp3
    SOUNDTRACK_VOLUME=0.5
+   AI_VOICEOVER_ENABLED=true
+   VOICEOVER_TTS_SERVICE=openai
+   VOICEOVER_VOICE=alloy
+   VOICEOVER_VOLUME=0.8
    ```
 
    ### For Direct Video Extraction:
@@ -118,6 +128,10 @@ In this approach:
    SOUNDTRACK_PATH=audio/slowlife.mp3
    SOUNDTRACK_VOLUME=0.5
    MANUAL_TIMESTAMP_ENTRY=true
+   AI_VOICEOVER_ENABLED=true
+   VOICEOVER_TTS_SERVICE=openai
+   VOICEOVER_VOICE=alloy
+   VOICEOVER_VOLUME=0.8
    ```
 
 ## Usage
@@ -152,6 +166,8 @@ output/
     │   └── ...
     └── video/
         ├── [video_id]_short.mp4
+        ├── [video_id]_voiceover.mp3
+        ├── [video_id]_voiceover_adjusted.mp3
         └── [video_id]_ffmpeg_command.txt
 ```
 
@@ -171,6 +187,8 @@ output/
     │   └── ...
     └── video/
         ├── [video_id]_montage.mp4
+        ├── [video_id]_voiceover.mp3
+        ├── [video_id]_voiceover_adjusted.mp3
         └── [video_id]_clip_list.txt
 ```
 
@@ -181,7 +199,8 @@ You can configure the application by modifying the `.env` file or the `config.ts
 ### Environment Variables
 
 - `HUGGINGFACE_API_KEY`: API key for Hugging Face (for AI image generation)
-- `OPENAI_API_KEY`: API key for OpenAI (for content analysis)
+- `OPENAI_API_KEY`: API key for OpenAI (for content analysis and TTS)
+- `ELEVENLABS_API_KEY`: API key for ElevenLabs (alternative TTS service)
 - `VIDEO_ENABLED`: Enable video creation (true/false)
 - `EXTRACTION_ENABLED`: Enable direct extraction from YouTube (true/false)
 - `CLIP_DURATION`: Duration of each extracted clip in seconds (default: 5)
@@ -192,6 +211,10 @@ You can configure the application by modifying the `.env` file or the `config.ts
 - `SOUNDTRACK_PATH`: Path to the soundtrack file (default: audio/slowlife.mp3)
 - `SOUNDTRACK_VOLUME`: Volume level for the soundtrack (0.0-1.0, default: 0.5)
 - `MANUAL_TIMESTAMP_ENTRY`: Enable manual timestamp entry (true/false)
+- `AI_VOICEOVER_ENABLED`: Enable AI voiceover (true/false)
+- `VOICEOVER_TTS_SERVICE`: TTS service to use (openai or elevenlabs, default: openai)
+- `VOICEOVER_VOICE`: Voice ID/name for the voiceover (default: alloy)
+- `VOICEOVER_VOLUME`: Volume level for the voiceover (0.0-1.0, default: 0.8)
 
 ### config.ts Settings
 
@@ -204,6 +227,10 @@ You can configure the application by modifying the `.env` file or the `config.ts
 - `soundtrackPath`: Path to the soundtrack file (default: audio/slowlife.mp3)
 - `soundtrackVolume`: Volume level for the soundtrack (default: 0.5)
 - `manualTimestampEntry`: Enable manual timestamp entry (default: false)
+- `aiVoiceoverEnabled`: Enable AI voiceover (default: false)
+- `voiceoverVoice`: Voice ID/name for the voiceover (default: alloy)
+- `voiceoverTtsService`: TTS service to use (default: openai)
+- `voiceoverVolume`: Volume level for the voiceover (default: 0.8)
 
 ## Manual Timestamp Entry
 
@@ -323,6 +350,73 @@ await addSoundtrackToVideo(
   'output_with_music.mp4', // Output video path
   'audio/slowlife.mp3',    // Soundtrack path
   0.5                      // Volume level (0.0-1.0)
+);
+```
+
+## AI Voiceover
+
+The application supports adding AI-generated voiceover to both AI-generated videos and extracted video montages. This feature:
+
+- Creates a concise script based on the video transcript
+- Generates speech using either OpenAI or ElevenLabs Text-to-Speech (TTS) services
+- Adjusts the voiceover duration to match the video length
+- Combines the voiceover with the video, optionally mixing it with a custom soundtrack
+
+### How It Works
+
+The AI voiceover feature:
+1. Analyzes the video transcript to extract key points
+2. Creates a concise script that captures the essence of the content
+3. Generates high-quality speech using the selected TTS service
+4. Adjusts the voiceover timing to perfectly match the length of the video
+5. Mixes the voiceover with the video, along with any soundtrack if enabled
+
+### Enhanced Transcript Distillation
+
+The voiceover feature has been enhanced to intelligently distill YouTube video transcripts into more concise content that matches the length of the generated video. Previously, the system was using the raw transcript directly, which often resulted in voiceovers that were either too long or contained too much irrelevant information.
+
+#### Key improvements:
+
+- **Smart Content Selection**: Extracts key sentences from beginning, middle, and end of the transcript
+- **Proportional Word Count**: Automatically calculates optimal word count based on video duration
+- **Context Preservation**: Maintains the essence of the original content while trimming excess
+- **HTML Entity Handling**: Properly decodes HTML entities for natural-sounding speech
+- **Sentence Optimization**: Formats sentences for better speech rhythm and clarity
+
+This ensures that voiceovers are concise, relevant, and perfectly timed to match the video duration, providing a better viewing experience.
+
+### Configuration
+
+To enable AI voiceover, set the following in your `.env` file:
+
+```
+AI_VOICEOVER_ENABLED=true               # Enable AI voiceover
+VOICEOVER_TTS_SERVICE=openai            # TTS service to use (openai or elevenlabs)
+VOICEOVER_VOICE=alloy                   # Voice ID/name
+VOICEOVER_VOLUME=0.8                    # Volume level (0.0-1.0)
+```
+
+For OpenAI TTS, available voices are: alloy, echo, fable, onyx, nova, shimmer.
+
+For ElevenLabs, you'll need to:
+1. Set `ELEVENLABS_API_KEY` in your `.env` file
+2. Use the voice ID from the ElevenLabs dashboard
+
+### Usage in code
+
+If you need to generate a voiceover programmatically:
+
+```typescript
+import { generateVoiceover, createVoiceoverScript } from './services/tts-service';
+
+// Generate a voiceover script from a transcript
+const script = createVoiceoverScript(videoTranscript, 150);
+
+// Generate a voiceover
+const voiceoverPath = await generateVoiceover(
+  script,
+  "output_path.mp3",
+  30 // Optional: target duration in seconds
 );
 ```
 
