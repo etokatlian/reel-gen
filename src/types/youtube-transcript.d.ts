@@ -28,6 +28,7 @@ export interface ProcessedVideo {
   outputDirectory: string;
   transcriptPath?: string;
   momentPaths?: string[];
+  videoPath?: string;
 }
 
 export interface ImageGenerationResult {

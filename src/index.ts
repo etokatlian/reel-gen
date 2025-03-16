@@ -12,6 +12,7 @@ import { createOutputDirectories } from "./utils/file-utils";
 import { fetchTranscript, saveTranscript } from "./services/transcript-service";
 import { extractKeyMoments, saveKeyMoments } from "./services/analysis-service";
 import { generateImagesForKeyMoments } from "./services/image-service";
+import { createShortVideo, checkFFmpegAvailability } from "./services/video-service";
 import { ProcessedVideo } from "./types/youtube-transcript";
 
 /**
@@ -68,13 +69,33 @@ async function main(): Promise<void> {
       displayStatus("Generating images based on key moments...");
       processedVideo = await generateImagesForKeyMoments(processedVideo);
       displayStatus("Image generation completed");
+
+      // Create video if enabled and FFmpeg is available
+      if (config.videoEnabled && processedVideo.imagePaths && processedVideo.imagePaths.length > 0) {
+        // Check if FFmpeg is installed
+        const ffmpegAvailable = await checkFFmpegAvailability();
+        
+        if (ffmpegAvailable) {
+          displayStatus("Creating short video from generated images...");
+          const videoPath = await createShortVideo(processedVideo);
+          
+          processedVideo = {
+            ...processedVideo,
+            videoPath
+          };
+          
+          displayStatus(`Video created successfully: ${videoPath}`);
+        } else {
+          displayStatus("Video creation skipped: FFmpeg not found. Please install FFmpeg to enable video creation.");
+        }
+      }
     } else {
       displayStatus("Skipping content analysis and image generation (OpenAI API key not set)");
       displayApiKeyHelp();
     }
     
     // Display completion message
-    displayCompletion(videoId, processedVideo.imagePaths);
+    displayCompletion(videoId, processedVideo.imagePaths, processedVideo.videoPath);
     
   } catch (error: any) {
     // Handle errors

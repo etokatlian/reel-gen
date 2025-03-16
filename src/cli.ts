@@ -8,7 +8,7 @@ import { config } from "./config";
 export function displayWelcome(): void {
   console.log("\n=======================================================");
   console.log("YouTube Content Visualizer");
-  console.log("Convert YouTube videos to compelling images");
+  console.log("Convert YouTube videos to compelling images and shorts");
   console.log("=======================================================\n");
 }
 
@@ -62,6 +62,7 @@ export function displayApiKeyHelp(): void {
   console.log("Please create a .env file in the project root with your API keys:");
   console.log("HUGGINGFACE_API_KEY=your_huggingface_api_key");
   console.log("OPENAI_API_KEY=your_openai_api_key (required for content analysis)");
+  console.log("VIDEO_ENABLED=true (optional for video creation)");
   console.log("\nOr set these as environment variables before running the application.");
 }
 
@@ -69,19 +70,30 @@ export function displayApiKeyHelp(): void {
  * Display completion message with results
  * @param videoId The processed video ID
  * @param imagePaths Paths to the generated images
+ * @param videoPath Path to the generated video
  */
-export function displayCompletion(videoId: string, imagePaths: string[] = []): void {
+export function displayCompletion(
+  videoId: string, 
+  imagePaths: string[] = [],
+  videoPath?: string
+): void {
   console.log("\n✅ Process completed successfully!");
   console.log("=======================================================");
   
   console.log(`\nVideo ID: ${videoId}`);
-  console.log(`Video URL: ${formatYouTubeUrl(videoId)}`);
+  console.log(`YouTube URL: ${formatYouTubeUrl(videoId)}`);
   
   if (imagePaths.length > 0) {
     console.log(`\nGenerated ${imagePaths.length} images:`);
     imagePaths.forEach((path, index) => {
       console.log(`Image ${index + 1}: ${path}`);
     });
+  }
+  
+  if (videoPath) {
+    console.log(`\nGenerated short video: ${videoPath}`);
+    console.log(`Duration: ${config.videoDuration} seconds`);
+    console.log("Video format: MP4 (H.264) with zoom effects");
   }
   
   console.log("\nOutput directory:", `${process.cwd()}/${config.outputDirectory}/${videoId}`);

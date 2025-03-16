@@ -1,13 +1,14 @@
 # YouTube Content Visualizer
 
-This application downloads YouTube video transcripts and generates images that directly represent the key moments discussed in the video content.
+This application downloads YouTube video transcripts, generates images that directly represent the key moments discussed in the video content, and optionally creates TikTok/YouTube Shorts-style videos from those images.
 
 ## Features
 
 - Download transcripts from any YouTube video
 - Analyze video content to extract key visual moments
 - Generate images that accurately represent the actual content (not just style variations)
-- Organized output with transcripts and images saved in a structured directory
+- Create short videos with zoom effects from the generated images
+- Organized output with transcripts, images, and videos saved in a structured directory
 
 ## Project Structure
 
@@ -21,7 +22,8 @@ src/
 ├── services/                 # Core functionalities
 │   ├── transcript-service.ts # YouTube transcript fetching
 │   ├── analysis-service.ts   # Content analysis using OpenAI
-│   └── image-service.ts      # Image generation using Hugging Face
+│   ├── image-service.ts      # Image generation using Hugging Face
+│   └── video-service.ts      # Video creation with FFmpeg
 ├── types/                    # Type definitions
 │   └── youtube-transcript.d.ts
 └── utils/                    # Utility functions
@@ -39,25 +41,57 @@ The application fetches video transcripts using the `youtube-transcript` library
 
 In `analysis-service.ts`, OpenAI's GPT models analyze the transcript to identify distinct, important moments that can be visualized. The analysis focuses on extracting specific content rather than stylistic elements.
 
-Important functions:
-- `extractKeyMoments(transcript)`: Identifies 3 key moments from the transcript
-- `saveKeyMoments(videoData)`: Saves the extracted moments to disk
-
 ### 3. Image Generation
 
 The `image-service.ts` module handles generating images from the extracted key moments using Hugging Face's Stable Diffusion models. It ensures images directly represent the actual content discussed in the video.
 
-Key features:
-- Content-focused prompts prioritize accuracy over style
-- Fallback to backup models if primary model fails
-- Consistent seed generation for reproducible but varied results
+### 4. Video Creation
 
-## Configuration
+The `video-service.ts` module creates a short video (default: 15 seconds) from the generated images, applying a subtle zoom effect to each image. This creates an engaging TikTok/YouTube Shorts-style video.
 
-All configuration is centralized in `config.ts`. The application requires:
+## System Requirements
 
-- `HUGGINGFACE_API_KEY`: Required for image generation
-- `OPENAI_API_KEY`: Optional but needed for content analysis
+- Node.js (v16+)
+- FFmpeg (required for video generation)
+- Hugging Face API key (required for image generation)
+- OpenAI API key (optional for content analysis)
+
+## Installation
+
+1. Install FFmpeg (required for video generation):
+   - **macOS**: `brew install ffmpeg`
+   - **Ubuntu/Debian**: `sudo apt install ffmpeg`
+   - **Windows**: Download from [ffmpeg.org](https://ffmpeg.org/download.html) or install with Chocolatey: `choco install ffmpeg`
+
+2. Clone this repository
+
+3. Install dependencies:
+   ```
+   npm install
+   ```
+
+4. Create a `.env` file in the project root with your API keys:
+   ```
+   HUGGINGFACE_API_KEY=your_huggingface_api_key
+   OPENAI_API_KEY=your_openai_api_key
+   VIDEO_ENABLED=true
+   ```
+
+## Usage
+
+Run the application:
+
+```
+npm start
+```
+
+Follow the prompts to enter a YouTube video URL. The application will:
+
+1. Download the video transcript
+2. Analyze the content to identify key moments (if OpenAI API key is provided)
+3. Generate images that accurately represent those key moments (using Hugging Face's Stable Diffusion)
+4. Create a short video with zoom effects from the generated images (if FFmpeg is installed and VIDEO_ENABLED=true)
+5. Save everything to an organized output directory
 
 ## Output Structure
 
@@ -68,16 +102,34 @@ output/
     │   ├── [video_id]_transcript.txt
     │   ├── [video_id]_all_moments.txt
     │   └── [video_id]_moment_[1-3].txt
-    └── images/
-        ├── [video_id]_image_[1-3].png
-        └── [video_id]_image_[1-3]_description.txt
+    ├── images/
+    │   ├── [video_id]_image_1.png
+    │   ├── [video_id]_image_1_description.txt
+    │   ├── [video_id]_image_2.png
+    │   ├── [video_id]_image_2_description.txt
+    │   ├── [video_id]_image_3.png
+    │   └── [video_id]_image_3_description.txt
+    └── video/
+        ├── [video_id]_short.mp4
+        └── [video_id]_ffmpeg_script.txt
 ```
+
+## Configuration
+
+You can configure the application by modifying the `config.ts` file:
+
+- `imagesToGenerate`: Number of images to generate (default: 3)
+- `videoDuration`: Total duration of the generated video in seconds (default: 15)
+- `videoEnabled`: Whether to enable video generation (default: false, set to true in .env)
+- `outputDirectory`: Base directory for output files (default: "output")
+- Model endpoints and other parameters can also be customized
 
 ## Development Guide
 
 ### Prerequisites
 - Node.js (v16+)
 - npm or pnpm
+- FFmpeg (for video generation)
 
 ### Setup
 1. Clone the repository
@@ -106,7 +158,7 @@ The project uses Jest for testing. Critical functions have unit tests to prevent
 
 3. **Type Safety**: The `ProcessedVideo` interface in `types/youtube-transcript.d.ts` defines the data structure that flows through the application pipeline.
 
-4. **Environment Requirements**: The application requires ES2021+ support for features like `string.replaceAll()`.
+4. **FFmpeg Dependency**: Video generation requires FFmpeg to be installed on the system.
 
 ## License
 

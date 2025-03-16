@@ -10,6 +10,8 @@ export interface Config {
   backupModelEndpoint: string;
   imagesToGenerate: number;
   outputDirectory: string;
+  videoDuration: number;
+  videoEnabled: boolean;
 }
 
 // Validate required environment variables
@@ -31,6 +33,8 @@ export const config: Config = {
     "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5",
   imagesToGenerate: 3,
   outputDirectory: "output",
+  videoDuration: 15, // Total video duration in seconds
+  videoEnabled: process.env.VIDEO_ENABLED === "true" || false // Feature toggle for video creation
 };
 
 // Debug: Log environment variables (without showing actual values)
@@ -43,6 +47,7 @@ export const logConfigStatus = (): void => {
     !!process.env.HUGGINGFACE_API_KEY
   );
   console.log("- OPENAI_API_KEY present:", !!process.env.OPENAI_API_KEY);
+  console.log("- Video generation:", config.videoEnabled ? "Enabled" : "Disabled");
 };
 
 export default config;
