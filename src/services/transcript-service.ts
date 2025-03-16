@@ -26,6 +26,22 @@ export async function fetchTranscript(videoId: string): Promise<string> {
 }
 
 /**
+ * Get transcript segments with offset (timestamp) information
+ * @param videoId YouTube video ID
+ * @returns Promise with array of transcript segments
+ */
+export async function getTranscriptSegments(videoId: string): Promise<TranscriptResponse[]> {
+  try {
+    // Fetch the transcript segments using the YoutubeTranscript library
+    const segments = await YoutubeTranscript.fetchTranscript(videoId);
+    return segments;
+  } catch (error) {
+    console.error("Error fetching transcript segments:", error);
+    throw new Error(`Failed to fetch transcript segments for video ${videoId}: ${error}`);
+  }
+}
+
+/**
  * Save the transcript to a file
  * @param videoData Processed video data with transcript
  * @returns Updated ProcessedVideo with saved transcript path

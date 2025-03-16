@@ -9,10 +9,18 @@ import {
   displayCompletion
 } from "./cli";
 import { createOutputDirectories } from "./utils/file-utils";
-import { fetchTranscript, saveTranscript } from "./services/transcript-service";
+import { fetchTranscript, saveTranscript, getTranscriptSegments } from "./services/transcript-service";
 import { extractKeyMoments, saveKeyMoments } from "./services/analysis-service";
 import { generateImagesForKeyMoments } from "./services/image-service";
 import { createShortVideo, checkFFmpegAvailability } from "./services/video-service";
+import { 
+  checkYtDlpAvailability,
+  extractKeyTimestamps,
+  extractKeyClipRanges,
+  extractScreenshots,
+  extractVideoClips,
+  createVideoMontage
+} from "./services/youtube-extraction-service";
 import { ProcessedVideo } from "./types/youtube-transcript";
 
 /**
@@ -54,8 +62,65 @@ async function main(): Promise<void> {
     processedVideo = saveTranscript(processedVideo);
     displayStatus("Transcript downloaded and saved successfully");
     
-    // Extract key moments if OpenAI API key is available
-    if (config.openAiApiKey) {
+    // Process content either through AI or direct extraction
+    if (config.extractionEnabled) {
+      // Check required dependencies
+      const ffmpegAvailable = await checkFFmpegAvailability();
+      if (!ffmpegAvailable) {
+        throw new Error("FFmpeg is required for video extraction but not found. Please install FFmpeg and try again.");
+      }
+      
+      const ytdlpAvailable = await checkYtDlpAvailability();
+      if (!ytdlpAvailable) {
+        throw new Error("yt-dlp is required for video extraction but not found. Please install yt-dlp and try again.");
+      }
+      
+      // Get transcript segments with timestamps
+      displayStatus("Getting transcript segments with timestamps...");
+      const transcriptSegments = await getTranscriptSegments(videoId);
+      
+      // Extract key timestamps for screenshots
+      displayStatus("Extracting key timestamps for visual content...");
+      const keyTimestamps = extractKeyTimestamps(transcriptSegments, config.imagesToGenerate);
+      
+      // Extract screenshots
+      displayStatus("Extracting screenshots from the video...");
+      const screenshotPaths = await extractScreenshots(processedVideo, keyTimestamps);
+      processedVideo = {
+        ...processedVideo,
+        imagePaths: screenshotPaths
+      };
+      
+      // Extract clip ranges
+      displayStatus("Determining key moments for video clips...");
+      const clipRanges = extractKeyClipRanges(
+        transcriptSegments, 
+        config.imagesToGenerate,
+        config.clipDuration
+      );
+      
+      // Extract video clips
+      displayStatus("Extracting video clips...");
+      const clipPaths = await extractVideoClips(processedVideo, clipRanges);
+      processedVideo = {
+        ...processedVideo,
+        clipPaths
+      };
+      
+      // Create video montage if enabled
+      if (config.videoEnabled && clipPaths.length > 0) {
+        displayStatus("Creating video montage from extracted clips...");
+        const montagePath = await createVideoMontage(processedVideo, clipPaths);
+        processedVideo = {
+          ...processedVideo,
+          videoPath: montagePath
+        };
+      }
+      
+      displayStatus("Video extraction and processing completed successfully");
+    } 
+    else if (config.openAiApiKey) {
+      // Use AI-based approach
       displayStatus("Analyzing transcript to extract key moments...");
       const keyMoments = await extractKeyMoments(transcript);
       processedVideo = {
@@ -90,18 +155,18 @@ async function main(): Promise<void> {
         }
       }
     } else {
-      displayStatus("Skipping content analysis and image generation (OpenAI API key not set)");
+      displayStatus("Skipping content analysis and image generation (No OpenAI API key or extraction enabled)");
       displayApiKeyHelp();
     }
     
     // Display completion message
-    displayCompletion(videoId, processedVideo.imagePaths, processedVideo.videoPath);
+    displayCompletion(videoId, processedVideo.imagePaths, processedVideo.clipPaths, processedVideo.videoPath);
     
   } catch (error: any) {
     // Handle errors
     displayError(error.message || "An unknown error occurred", error);
     
-    if (!config.huggingFaceApiKey) {
+    if (!config.huggingFaceApiKey && !config.extractionEnabled) {
       displayApiKeyHelp();
     }
     

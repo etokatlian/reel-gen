@@ -25,6 +25,7 @@ export interface ProcessedVideo {
   transcript: string;
   keyMoments?: string[];
   imagePaths?: string[];
+  clipPaths?: string[];
   outputDirectory: string;
   transcriptPath?: string;
   momentPaths?: string[];

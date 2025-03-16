@@ -1,14 +1,21 @@
 # YouTube Content Visualizer
 
-This application downloads YouTube video transcripts, generates images that directly represent the key moments discussed in the video content, and optionally creates TikTok/YouTube Shorts-style videos from those images.
+This application processes YouTube videos in two different ways:
+1. **AI-Generated Content**: Downloads transcripts, analyzes content, generates images, and creates short videos
+2. **Direct Extraction**: Extracts actual screenshots and video clips from the original YouTube video
 
 ## Features
 
-- Download transcripts from any YouTube video
-- Analyze video content to extract key visual moments
-- Generate images that accurately represent the actual content (not just style variations)
-- Create short videos with zoom effects from the generated images
-- Organized output with transcripts, images, and videos saved in a structured directory
+- Download and analyze YouTube video transcripts
+- **AI-Based Approach**:
+  - Extract key moments using OpenAI's GPT models
+  - Generate images representing those key moments using Hugging Face
+  - Create short videos with zoom effects from the generated images
+- **Direct Extraction Approach**:
+  - Extract screenshots at key moments from the original video
+  - Extract short video clips from the most relevant parts
+  - Create a montage of the extracted clips
+- Organized output with all assets saved in a structured directory
 
 ## Project Structure
 
@@ -16,65 +23,85 @@ The codebase follows a modular architecture for maintainability:
 
 ```
 src/
-├── index.ts                  # Main entry point
-├── config.ts                 # Configuration and environment setup
-├── cli.ts                    # Command-line interface handling
-├── services/                 # Core functionalities
-│   ├── transcript-service.ts # YouTube transcript fetching
-│   ├── analysis-service.ts   # Content analysis using OpenAI
-│   ├── image-service.ts      # Image generation using Hugging Face
-│   └── video-service.ts      # Video creation with FFmpeg
-├── types/                    # Type definitions
+├── index.ts                         # Main entry point
+├── config.ts                        # Configuration and environment setup
+├── cli.ts                           # Command-line interface handling
+├── services/                        # Core functionalities
+│   ├── transcript-service.ts        # YouTube transcript fetching
+│   ├── analysis-service.ts          # Content analysis using OpenAI
+│   ├── image-service.ts             # Image generation using Hugging Face
+│   ├── video-service.ts             # Video creation with FFmpeg
+│   └── youtube-extraction-service.ts # Screenshot and clip extraction
+├── types/                           # Type definitions
 │   └── youtube-transcript.d.ts
-└── utils/                    # Utility functions
-    ├── file-utils.ts         # File operations
-    └── video-utils.ts        # Video-related utilities
+└── utils/                           # Utility functions
+    ├── file-utils.ts                # File operations
+    └── video-utils.ts               # Video-related utilities
 ```
 
 ## Key Workflows
 
 ### 1. Transcript Processing
 
-The application fetches video transcripts using the `youtube-transcript` library in `transcript-service.ts`. The transcript is saved to disk and then analyzed for key moments.
+The application fetches video transcripts using the `youtube-transcript` library. The transcript is saved to disk and then used for either AI analysis or timestamp extraction.
 
-### 2. Content Analysis
+### 2. AI-Based Approach
 
-In `analysis-service.ts`, OpenAI's GPT models analyze the transcript to identify distinct, important moments that can be visualized. The analysis focuses on extracting specific content rather than stylistic elements.
+In this approach:
+- The transcript is analyzed by OpenAI's GPT models to identify key moments
+- Images are generated using Hugging Face's Stable Diffusion models
+- A short video is created from these images using FFmpeg
 
-### 3. Image Generation
+### 3. Direct Extraction Approach
 
-The `image-service.ts` module handles generating images from the extracted key moments using Hugging Face's Stable Diffusion models. It ensures images directly represent the actual content discussed in the video.
-
-### 4. Video Creation
-
-The `video-service.ts` module creates a short video (default: 15 seconds) from the generated images, applying a subtle zoom effect to each image. This creates an engaging TikTok/YouTube Shorts-style video.
+In this approach:
+- Key timestamps are determined from the transcript
+- Screenshots are captured at those timestamps using FFmpeg and yt-dlp
+- Short video clips are extracted at key moments
+- A montage video is created from these clips
 
 ## System Requirements
 
 - Node.js (v16+)
-- FFmpeg (required for video generation)
-- Hugging Face API key (required for image generation)
+- FFmpeg (required for both approaches)
+- yt-dlp (required for direct extraction)
+- Hugging Face API key (required for AI-generated images)
 - OpenAI API key (optional for content analysis)
 
 ## Installation
 
-1. Install FFmpeg (required for video generation):
-   - **macOS**: `brew install ffmpeg`
-   - **Ubuntu/Debian**: `sudo apt install ffmpeg`
-   - **Windows**: Download from [ffmpeg.org](https://ffmpeg.org/download.html) or install with Chocolatey: `choco install ffmpeg`
+1. Install dependencies:
+   - **FFmpeg**:
+     - **macOS**: `brew install ffmpeg`
+     - **Ubuntu/Debian**: `sudo apt install ffmpeg`
+     - **Windows**: Download from [ffmpeg.org](https://ffmpeg.org/download.html) or install with Chocolatey: `choco install ffmpeg`
+   
+   - **yt-dlp** (for direct extraction):
+     - **macOS**: `brew install yt-dlp`
+     - **Ubuntu/Debian**: `sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && sudo chmod a+rx /usr/local/bin/yt-dlp`
+     - **Windows**: Download from [yt-dlp's GitHub](https://github.com/yt-dlp/yt-dlp/releases) or install with Chocolatey: `choco install yt-dlp`
 
 2. Clone this repository
 
-3. Install dependencies:
+3. Install Node.js dependencies:
    ```
    npm install
    ```
 
-4. Create a `.env` file in the project root with your API keys:
+4. Create a `.env` file in the project root and configure it based on your preferred approach:
+
+   ### For AI-Generated Content:
    ```
    HUGGINGFACE_API_KEY=your_huggingface_api_key
    OPENAI_API_KEY=your_openai_api_key
    VIDEO_ENABLED=true
+   ```
+
+   ### For Direct Video Extraction:
+   ```
+   EXTRACTION_ENABLED=true
+   CLIP_DURATION=5
+   EXTRACTION_QUALITY=medium
    ```
 
 ## Usage
@@ -88,13 +115,12 @@ npm start
 Follow the prompts to enter a YouTube video URL. The application will:
 
 1. Download the video transcript
-2. Analyze the content to identify key moments (if OpenAI API key is provided)
-3. Generate images that accurately represent those key moments (using Hugging Face's Stable Diffusion)
-4. Create a short video with zoom effects from the generated images (if FFmpeg is installed and VIDEO_ENABLED=true)
-5. Save everything to an organized output directory
+2. Process the content based on your chosen approach (AI-based or direct extraction)
+3. Save everything to an organized output directory
 
 ## Output Structure
 
+### AI-Based Approach:
 ```
 output/
 └── [video_id]/
@@ -106,35 +132,61 @@ output/
     │   ├── [video_id]_image_1.png
     │   ├── [video_id]_image_1_description.txt
     │   ├── [video_id]_image_2.png
-    │   ├── [video_id]_image_2_description.txt
-    │   ├── [video_id]_image_3.png
-    │   └── [video_id]_image_3_description.txt
+    │   └── ...
     └── video/
         ├── [video_id]_short.mp4
         └── [video_id]_ffmpeg_command.txt
 ```
 
+### Direct Extraction Approach:
+```
+output/
+└── [video_id]/
+    ├── transcript/
+    │   └── [video_id]_transcript.txt
+    ├── screenshots/
+    │   ├── [video_id]_screenshot_1.jpg
+    │   ├── [video_id]_screenshot_2.jpg
+    │   └── ...
+    ├── clips/
+    │   ├── [video_id]_clip_1.mp4
+    │   ├── [video_id]_clip_2.mp4
+    │   └── ...
+    └── video/
+        ├── [video_id]_montage.mp4
+        └── [video_id]_clip_list.txt
+```
+
 ## Configuration
 
-You can configure the application by modifying the `config.ts` file:
+You can configure the application by modifying the `.env` file or the `config.ts` file:
 
-- `imagesToGenerate`: Number of images to generate (default: 3)
+### Environment Variables
+
+- `HUGGINGFACE_API_KEY`: API key for Hugging Face (for AI image generation)
+- `OPENAI_API_KEY`: API key for OpenAI (for content analysis)
+- `VIDEO_ENABLED`: Enable video creation (true/false)
+- `EXTRACTION_ENABLED`: Enable direct extraction from YouTube (true/false)
+- `CLIP_DURATION`: Duration of each extracted clip in seconds (default: 5)
+- `EXTRACTION_QUALITY`: Quality of extraction (low, medium, high)
+
+### config.ts Settings
+
+- `imagesToGenerate`: Number of images/screenshots/clips to generate (default: 3)
 - `videoDuration`: Total duration of the generated video in seconds (default: 15)
-- `videoEnabled`: Whether to enable video generation (default: false, set to true in .env)
 - `outputDirectory`: Base directory for output files (default: "output")
-- Model endpoints and other parameters can also be customized
 
 ## Development Guide
 
 ### Prerequisites
 - Node.js (v16+)
 - npm or pnpm
-- FFmpeg (for video generation)
+- FFmpeg and yt-dlp (for direct extraction)
 
 ### Setup
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Create a `.env` file with your API keys
+3. Create a `.env` file with your configuration
 
 ### Development Commands
 
@@ -173,19 +225,9 @@ The project uses Jest for testing. Critical functions have unit tests to prevent
 - File system operations
 - Transcript fetching
 - Content analysis
-- Video generation
+- Video generation and extraction
 
 Tests are focused on critical functionality rather than implementation details, making them more maintainable and less prone to breaking when refactoring.
-
-### Important Development Notes
-
-1. **Content Focus**: When modifying image generation, focus on content accuracy rather than style variations.
-
-2. **Error Handling**: All modules include comprehensive error handling and fallback mechanisms.
-
-3. **Type Safety**: The `ProcessedVideo` interface in `types/youtube-transcript.d.ts` defines the data structure that flows through the application pipeline.
-
-4. **FFmpeg Dependency**: Video generation requires FFmpeg to be installed on the system.
 
 ## License
 
