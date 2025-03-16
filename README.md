@@ -111,7 +111,7 @@ output/
     │   └── [video_id]_image_3_description.txt
     └── video/
         ├── [video_id]_short.mp4
-        └── [video_id]_ffmpeg_script.txt
+        └── [video_id]_ffmpeg_command.txt
 ```
 
 ## Configuration
@@ -136,19 +136,46 @@ You can configure the application by modifying the `config.ts` file:
 2. Install dependencies: `npm install`
 3. Create a `.env` file with your API keys
 
-### Commands
+### Development Commands
+
+#### Basic Commands
 - `npm run build`: Build the TypeScript code
 - `npm start`: Build and run the application
 - `npm run dev`: Run in development mode with ts-node
-- `npm test`: Run unit tests
-- `npm run test:coverage`: Run tests with coverage report
 
-### Testing
+#### Testing & Linting
+- `npm test`: Run unit tests
+- `npm run test:watch`: Run tests in watch mode (watches files you modify)
+- `npm run test:watchAll`: Run tests in watch mode (watches all test files)
+- `npm run test:coverage`: Run tests with coverage report
+- `npm run lint`: Run ESLint to check code quality
+- `npm run lint:watch`: Run ESLint in watch mode
+
+#### Continuous Development
+- `npm run dev:watch`: Run the application with automatic restart when files change
+- `npm run watch`: **Recommended** - Run tests and linting simultaneously in watch mode
+
+### Continuous Testing
+
+For the best development experience, we recommend using the `npm run watch` command, which:
+
+- Runs tests and linting in parallel
+- Automatically re-runs tests when files change
+- Shows color-coded output to distinguish between tests and linting
+- Provides interactive commands for clearing the console, showing help, and quitting
+
+This ensures you get immediate feedback when making changes, helping you catch issues early.
+
+### Testing Strategy
+
 The project uses Jest for testing. Critical functions have unit tests to prevent regressions:
 - Video ID extraction and URL formatting
 - File system operations
 - Transcript fetching
 - Content analysis
+- Video generation
+
+Tests are focused on critical functionality rather than implementation details, making them more maintainable and less prone to breaking when refactoring.
 
 ### Important Development Notes
 

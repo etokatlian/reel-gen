@@ -32,7 +32,7 @@ export const config: Config = {
   backupModelEndpoint:
     "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5",
   imagesToGenerate: 3,
-  outputDirectory: "output",
+  outputDirectory: "output", // Output directory for generated images and video
   videoDuration: 15, // Total video duration in seconds
   videoEnabled: process.env.VIDEO_ENABLED === "true" || false // Feature toggle for video creation
 };

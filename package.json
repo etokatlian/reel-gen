@@ -9,8 +9,13 @@
     "dev": "ts-node src/index.ts",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:watchAll": "jest --watchAll",
     "test:coverage": "jest --coverage",
-    "lint": "eslint src/**/*.ts"
+    "test:coverage:watch": "jest --coverage --watchAll",
+    "lint": "eslint src/**/*.ts",
+    "lint:watch": "esw -w --clear src/**/*.ts",
+    "dev:watch": "nodemon --watch src --ext ts --exec \"npm run dev\"",
+    "watch": "node scripts/watch.js"
   },
   "keywords": [
     "youtube",
@@ -37,7 +42,9 @@
     "@typescript-eslint/eslint-plugin": "^7.4.0",
     "@typescript-eslint/parser": "^7.4.0",
     "eslint": "^8.57.0",
+    "eslint-watch": "^8.0.0",
     "jest": "^29.7.0",
+    "nodemon": "^3.1.9",
     "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
