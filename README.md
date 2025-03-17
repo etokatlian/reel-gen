@@ -1,4 +1,7 @@
-# YouTube Content Visualizer
+# YouTube Content Creator
+
+Paste in any YouTube video and get back a new & unique YouTube short that is configurable in duration, content, and style.
+Overlayed music, voiceover using text-to-speech, and AI-generated images are all possible.
 
 This application processes YouTube videos in two different ways:
 1. **AI-Generated Content**: Downloads transcripts, analyzes content, generates images, and creates short videos

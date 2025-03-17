@@ -9,7 +9,7 @@ import { config } from "../config";
  * @returns Enhanced prompt optimized for image generation
  */
 function enhancePrompt(prompt: string): string {
-  return `Create a photorealistic visual scene that accurately represents this content from a YouTube video: ${prompt}. High quality, detailed, no text, no watermarks. The image must directly represent the actual content described without stylistic embellishments.`;
+  return `Create an artistic interpretation of this content: ${prompt}. Use vibrant colors and dramatic lighting, cinematic composition. High quality, detailed, no text, no watermarks.`;
 }
 
 /**
@@ -52,8 +52,8 @@ async function generateImage(
       inputs: enhancedPrompt,
       parameters: {
         seed: seed,
-        num_inference_steps: 50,  // Higher for more detail
-        guidance_scale: 8.5,      // Higher for better prompt adherence
+        num_inference_steps: 60,  // Increased for more detail
+        guidance_scale: 9.0,      // Increased for better prompt adherence
         negative_prompt: negativePrompt,
       },
     }),

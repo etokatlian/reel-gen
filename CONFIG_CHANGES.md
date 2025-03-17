@@ -85,6 +85,20 @@ To change the voiceover duration ratio to 95% of the video length:
 3. **Improved Consistency**: Ensures consistent values are used throughout the application.
 4. **Enhanced Testability**: Makes it easier to test different configurations.
 
+## Bug Fixes
+
+### Fixed Extraction Service Voiceover Duration
+
+We identified and fixed an issue in the extraction service where it was using a hardcoded word count (42 words) for voiceovers, which was only appropriate for 15-second videos. This resulted in voiceovers that were too short for longer videos.
+
+The fix includes:
+
+1. **Dynamic Word Count Calculation**: The extraction service now calculates the optimal word count based on the video duration and the configured voiceover duration ratio.
+
+2. **Voiceover Duration Adjustment**: The extraction service now properly adjusts the voiceover duration to match the target duration, ensuring that the voiceover is proportional to the video length.
+
+3. **Consistent Behavior**: Both the video generation and extraction services now use the same approach for calculating and adjusting voiceover duration, ensuring consistent behavior across the application.
+
 ## Testing
 
 We've created test scripts to verify that the consolidated configuration works correctly:

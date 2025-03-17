@@ -2,7 +2,7 @@
 
 ## Overview
 
-We've implemented a solution to ensure that the voiceover track generated for videos is correctly proportional to the video length. The implementation follows a combination of two approaches:
+Implemented a solution to ensure that the voiceover track generated for videos is correctly proportional to the video length. The implementation follows a combination of two approaches:
 
 1. **Configuration-Based Approach**: Added a `voiceoverDurationRatio` configuration option to specify the desired proportion of the video duration that the voiceover should occupy.
 2. **FFmpeg-Based Time Stretching**: Implemented precise audio duration adjustment using FFmpeg's `atempo` filter to stretch or compress the voiceover audio to match the target duration.
